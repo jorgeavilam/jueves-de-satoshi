@@ -1,0 +1,4 @@
+# Bloquea el acceso directo por HTTP a los archivos de includes/
+# (db.php, functions.php, layout.php). Las páginas los siguen usando
+# del lado del servidor vía require; esto solo impide abrirlos por URL.
+Require all denied

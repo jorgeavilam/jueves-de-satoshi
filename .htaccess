@@ -1,0 +1,21 @@
+# Jueves de Satoshi — Seguridad básica
+
+# Proteger archivos sensibles
+<FilesMatch "^(config\.php|config\.example\.php|schema\.sql|seed\.sql)$">
+  Require all denied
+</FilesMatch>
+
+# Sin listado de directorios
+Options -Indexes
+
+# Forzar HTTPS (descomentar al activar SSL en cPanel)
+# RewriteEngine On
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+# Headers de seguridad
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

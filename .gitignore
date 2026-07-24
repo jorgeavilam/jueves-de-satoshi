@@ -1,0 +1,13 @@
+# Configuración con credenciales reales — nunca subir
+config.php
+
+# Archivos del sistema
+.DS_Store
+**/.DS_Store
+
+# Compresos / respaldos locales
+*.zip
+
+# Editores
+.vscode/
+.idea/
