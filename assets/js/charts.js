@@ -1,19 +1,29 @@
 // Jueves de Satoshi — Gráficas (Chart.js)
-// Espera window.JDS = { labels, fechas, inversion, valor, precioBtcMxn, sats, satsAcum, costoPromedio, urls }
+// Espera window.JDS, que arma year.php: locale, símbolo de moneda, series y textos.
+// El color de acento se lee del CSS, así que cada instalación pinta con el suyo.
 (function () {
   if (!window.JDS || typeof Chart === 'undefined') return;
   var D = window.JDS;
   var charts = [];
 
   function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
   function theme() {
     return {
-      text: css('--text'), soft: css('--text-soft'), border: css('--border'),
-      orange: '#F7931A', black: css('--text'), green: '#1FA858', red: '#D9483B'
+      text: css('--text'),
+      soft: css('--text-soft'),
+      border: css('--border'),
+      accent: css('--accent') || '#F7931A',
+      green: css('--green') || '#1FA858',
+      red: css('--red') || '#D9483B'
     };
   }
-  function moneyMXN(v) { return '$' + Number(v).toLocaleString('es-MX', { maximumFractionDigits: 0 }) + ' MXN'; }
-  function intFmt(v) { return Number(v).toLocaleString('es-MX'); }
+
+  function num(v, dec) {
+    return Number(v).toLocaleString(D.locale, { maximumFractionDigits: dec === undefined ? 0 : dec });
+  }
+  function money(v) { return D.symbol + num(v) + ' ' + D.currency; }
+  function intFmt(v) { return num(v); }
 
   function baseOpts(t, yFmt) {
     return {
@@ -23,19 +33,19 @@
       plugins: {
         legend: { labels: { color: t.text, usePointStyle: true, boxHeight: 7 } },
         tooltip: {
-          backgroundColor: 'rgba(26,26,26,0.92)',
-          titleColor: '#F7931A', bodyColor: '#fff', padding: 12, cornerRadius: 10,
+          backgroundColor: 'rgba(20,18,16,0.93)',
+          titleColor: t.accent, bodyColor: '#fff', padding: 12, cornerRadius: 8,
           callbacks: {
             label: function (ctx) { return ' ' + ctx.dataset.label + ': ' + yFmt(ctx.parsed.y); },
             footer: function (items) {
               var i = items[0].dataIndex;
-              return D.urls[i] ? '🔗 Clic para ver el post en X' : '';
+              return (D.urls && D.urls[i]) ? '🔗 ' + D.i18n.clickPost : '';
             }
           }
         }
       },
       onClick: function (evt, els) {
-        if (els.length && D.urls[els[0].index]) window.open(D.urls[els[0].index], '_blank');
+        if (els.length && D.urls && D.urls[els[0].index]) window.open(D.urls[els[0].index], '_blank', 'noopener');
       },
       scales: {
         x: { ticks: { color: t.soft, maxRotation: 45 }, grid: { color: 'transparent' } },
@@ -44,8 +54,8 @@
     };
   }
 
-  function grad(ctx, color) {
-    var g = ctx.createLinearGradient(0, 0, 0, 340);
+  function grad(ctx, color, h) {
+    var g = ctx.createLinearGradient(0, 0, 0, h || 340);
     g.addColorStop(0, color + '55');
     g.addColorStop(1, color + '00');
     return g;
@@ -56,19 +66,17 @@
     charts = [];
     var t = theme();
 
-    // 1) Inversión vs Valor — la gráfica estrella (con el cálculo corregido:
-    //    el valor acumulado usa el precio de BTC de CADA fecha)
+    // 1) Inversión vs Valor — el valor de cada fecha usa el precio de BTC de ESA fecha
     var el1 = document.getElementById('chartInvValor');
-    if (el1) {
+    if (el1 && D.inversion.length) {
       var ctx1 = el1.getContext('2d');
-      var opts1 = baseOpts(t, moneyMXN);
-      // PnL de cada fecha en el tooltip: identifica el peor susto y la mejor racha
+      var opts1 = baseOpts(t, money);
       opts1.plugins.tooltip.callbacks.afterBody = function (items) {
         var i = items[0].dataIndex;
         var inv = D.inversion[i], val = D.valor[i];
         if (!inv) return '';
         var pnl = val - inv, pct = pnl / inv * 100;
-        return (pnl >= 0 ? '😎 PnL: +' : '😱 PnL: ') + pct.toFixed(2) + '% (' + (pnl >= 0 ? '+' : '−') + moneyMXN(Math.abs(pnl)) + ')';
+        return (pnl >= 0 ? '😎 +' : '😱 ') + pct.toFixed(2) + '% (' + (pnl >= 0 ? '+' : '−') + money(Math.abs(pnl)) + ')';
       };
       charts.push(new Chart(ctx1, {
         type: 'line',
@@ -76,17 +84,14 @@
           labels: D.labels,
           datasets: [
             {
-              label: 'Inversión acumulada (MXN)',
-              data: D.inversion,
-              borderColor: t.black, backgroundColor: 'transparent',
-              borderWidth: 2, borderDash: [6, 4], pointRadius: 3, pointHoverRadius: 7, tension: 0.1
+              label: D.i18n.inv, data: D.inversion,
+              borderColor: t.soft, backgroundColor: 'transparent',
+              borderWidth: 2, borderDash: [6, 4], pointRadius: 2, tension: 0.25
             },
             {
-              label: 'Valor de la posición (MXN)',
-              data: D.valor,
-              borderColor: t.orange, backgroundColor: grad(ctx1, '#F7931A'),
-              borderWidth: 3, fill: true, pointRadius: 4, pointHoverRadius: 8, tension: 0.25,
-              pointBackgroundColor: D.valor.map(function (v, i) { return v >= D.inversion[i] ? t.green : t.red; })
+              label: D.i18n.val, data: D.valor,
+              borderColor: t.accent, backgroundColor: grad(ctx1, t.accent),
+              borderWidth: 3, fill: true, pointRadius: 3, pointHoverRadius: 6, tension: 0.25
             }
           ]
         },
@@ -96,63 +101,66 @@
 
     // 2) Precio de BTC en cada compra
     var el2 = document.getElementById('chartPrecio');
-    if (el2) {
-      charts.push(new Chart(el2.getContext('2d'), {
+    if (el2 && D.precioBtc.length) {
+      var ctx2 = el2.getContext('2d');
+      charts.push(new Chart(ctx2, {
         type: 'line',
         data: {
           labels: D.labels,
           datasets: [{
-            label: 'Precio BTC (MXN)',
-            data: D.precioBtcMxn,
-            borderColor: t.orange, backgroundColor: grad(el2.getContext('2d'), '#F7931A'),
-            borderWidth: 3, fill: true, pointRadius: 4, pointHoverRadius: 8, tension: 0.25
+            label: D.i18n.price, data: D.precioBtc,
+            borderColor: t.accent, backgroundColor: grad(ctx2, t.accent, 260),
+            borderWidth: 3, fill: true, pointRadius: 3, pointHoverRadius: 6, tension: 0.3
           }]
         },
-        options: baseOpts(t, moneyMXN)
+        options: baseOpts(t, money)
       }));
     }
 
-    // 3) Sats recibidos por compra — cuando BTC baja, llegan más sats
+    // 3) Sats por compra: cuando el precio baja, el mismo monto compra más
     var el3 = document.getElementById('chartSats');
-    if (el3) {
+    if (el3 && D.sats.length) {
+      var opts3 = baseOpts(t, intFmt);
+      opts3.plugins.legend.display = false;
       charts.push(new Chart(el3.getContext('2d'), {
         type: 'bar',
         data: {
           labels: D.labels,
           datasets: [{
-            label: 'Sats recibidos',
-            data: D.sats,
-            backgroundColor: D.sats.map(function (s) {
-              var max = Math.max.apply(null, D.sats), min = Math.min.apply(null, D.sats);
-              var p = max === min ? 1 : (s - min) / (max - min);
-              return 'rgba(247, 147, 26, ' + (0.35 + p * 0.65).toFixed(2) + ')';
+            label: D.i18n.sats, data: D.sats,
+            backgroundColor: D.sats.map(function (v) {
+              var max = Math.max.apply(null, D.sats);
+              return v === max ? t.green : t.accent;
             }),
-            borderRadius: 6
+            borderRadius: 4
           }]
         },
-        options: baseOpts(t, intFmt)
+        options: opts3
       }));
     }
 
-    // 4) Sats acumulados — la montaña que solo crece
+    // 4) Sats acumulados
     var el4 = document.getElementById('chartSatsAcum');
-    if (el4) {
-      charts.push(new Chart(el4.getContext('2d'), {
+    if (el4 && D.satsAcum.length) {
+      var ctx4 = el4.getContext('2d');
+      var opts4 = baseOpts(t, intFmt);
+      opts4.plugins.legend.display = false;
+      charts.push(new Chart(ctx4, {
         type: 'line',
         data: {
           labels: D.labels,
           datasets: [{
-            label: 'Sats acumulados',
-            data: D.satsAcum,
-            borderColor: t.black, backgroundColor: grad(el4.getContext('2d'), '#F7931A'),
-            borderWidth: 3, fill: true, pointRadius: 3, pointHoverRadius: 7, stepped: false, tension: 0.15
+            label: D.i18n.satsAcum, data: D.satsAcum,
+            borderColor: t.green, backgroundColor: grad(ctx4, t.green, 260),
+            borderWidth: 3, fill: true, pointRadius: 2, tension: 0.2
           }]
         },
-        options: baseOpts(t, intFmt)
+        options: opts4
       }));
     }
   }
 
-  window.jdsRetheme = build;
   build();
+  // El toggle de tema vuelve a pintar: los colores vienen del CSS
+  window.jdsRetheme = build;
 })();

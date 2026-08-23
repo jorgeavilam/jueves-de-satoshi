@@ -1,0 +1,2 @@
+# Los pasos de migración solo se ejecutan desde upgrade.php, nunca por URL.
+Require all denied

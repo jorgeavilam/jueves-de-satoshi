@@ -1,23 +1,23 @@
 <?php
 require_once __DIR__ . '/includes/layout.php';
+public_gate();
 
 $sent = false; $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Sin saltos de línea: evita inyección de cabeceras en el asunto del correo
-    $nombre  = trim(str_replace(["\r", "\n"], ' ', $_POST['nombre'] ?? ''));
-    $email   = trim($_POST['email'] ?? '');
-    $mensaje = trim($_POST['mensaje'] ?? '');
+    $nombre   = trim(str_replace(["\r", "\n"], ' ', $_POST['nombre'] ?? ''));
+    $email    = trim($_POST['email'] ?? '');
+    $mensaje  = trim($_POST['mensaje'] ?? '');
     $honeypot = $_POST['website'] ?? ''; // campo oculto anti-bots
 
     if ($honeypot !== '') {
         $sent = true; // bot: fingir éxito sin enviar
     } elseif ($nombre === '' || $mensaje === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Por favor completa todos los campos con un email válido.';
+        $error = t('contact_err_fields');
     } else {
-        // reCAPTCHA v3 (si está configurado)
         $captchaOk = true;
-        if (RECAPTCHA_SECRET !== '') {
+        if (defined('RECAPTCHA_SECRET') && RECAPTCHA_SECRET !== '') {
             $captchaOk = false;
             $resp = @file_get_contents('https://www.google.com/recaptcha/api/siteverify?secret='
                 . urlencode(RECAPTCHA_SECRET) . '&response=' . urlencode($_POST['g-recaptcha-response'] ?? ''));
@@ -27,43 +27,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         if (!$captchaOk) {
-            $error = 'No pudimos verificar que no eres un robot. Intenta de nuevo.';
+            $error = t('contact_err_captcha');
         } else {
-            $subject = '[Jueves de Satoshi] Mensaje de ' . $nombre;
-            $body = "Nombre: $nombre\nEmail: $email\n\nMensaje:\n$mensaje\n\n--\nEnviado desde " . SITE_URL;
-            $headers = 'From: ' . SITE_NAME . ' <' . CONTACT_FROM . ">\r\n"
+            $subject = t('contact_subject', site_name(), $nombre);
+            $body    = t('contact_form_name') . ": $nombre\n"
+                     . t('contact_form_email') . ": $email\n\n"
+                     . t('contact_form_msg') . ":\n$mensaje\n\n--\n" . t('contact_sent_from') . ' ' . SITE_URL;
+            $headers = 'From: ' . mb_encode_mimeheader(site_name()) . ' <' . CONTACT_FROM . ">\r\n"
                      . 'Reply-To: ' . $email . "\r\n"
                      . "Content-Type: text/plain; charset=UTF-8\r\n";
             $sent = @mail(CONTACT_EMAIL, $subject, $body, $headers);
-            if (!$sent) $error = 'Hubo un problema al enviar. Intenta más tarde o búscame en redes.';
+            if (!$sent) $error = t('contact_err_send');
         }
     }
 }
 
-page_head('Contacto', 'Contacta a Jorge Avila Meléndez, autor del ejercicio Jueves de Satoshi.');
+$socials     = owner_socials();
+$publicEmail = get_setting('owner_email_public', '');
+$bio         = get_setting('owner_bio', '');
+$captchaKey  = defined('RECAPTCHA_SITE_KEY') ? RECAPTCHA_SITE_KEY : '';
+
+page_head(t('contact_title'));
 ?>
 <div class="content-page">
-  <h1>Contacto</h1>
+  <h1><?= e(t('contact_title')) ?></h1>
 
   <div class="profile-card">
-    <img src="<?= SITE_URL ?>/assets/img/jorge-avila.jpg" alt="<?= e(SITE_AUTHOR) ?>">
+    <img src="<?= e(owner_avatar_url()) ?>" alt="<?= e(owner_name()) ?>" width="110" height="110">
     <div>
-      <h2 style="margin:0 0 4px"><?= e(SITE_AUTHOR) ?></h2>
-      <p class="bio">Alma de Activista, con Mente de Empresario y Corazón de Buen Samaritano.</p>
-      <div class="social-links" style="margin-top:8px">
-        <a href="https://x.com/<?= SOCIAL_HANDLE ?>" target="_blank" rel="noopener" title="X">𝕏</a>
-        <a href="https://www.linkedin.com/in/<?= SOCIAL_HANDLE ?>" target="_blank" rel="noopener" title="LinkedIn">in</a>
-        <a href="https://www.instagram.com/<?= SOCIAL_HANDLE ?>" target="_blank" rel="noopener" title="Instagram">IG</a>
-        <a href="https://www.facebook.com/<?= SOCIAL_HANDLE ?>x" target="_blank" rel="noopener" title="Facebook">f</a>
-        <a href="https://www.youtube.com/@<?= SOCIAL_HANDLE ?>" target="_blank" rel="noopener" title="YouTube">▶</a>
+      <h2><?= e(owner_name()) ?></h2>
+      <?php if ($bio !== ''): ?><p class="bio"><?= e($bio) ?></p><?php endif; ?>
+      <?php if ($publicEmail !== ''): ?>
+        <p class="profile-mail"><a href="mailto:<?= e($publicEmail) ?>"><?= e($publicEmail) ?></a></p>
+      <?php endif; ?>
+      <?php if ($socials): ?>
+      <div class="social-links dark-on-light">
+        <?php foreach ($socials as $s): ?>
+          <a href="<?= e($s['url']) ?>" target="_blank" rel="noopener me" title="<?= e($s['label']) ?>"><?= $s['glyph'] ?></a>
+        <?php endforeach; ?>
       </div>
+      <?php endif; ?>
     </div>
   </div>
 
-  <p>¿Dudas sobre el ejercicio, comentarios o quieres platicar de Bitcoin? Encuéntrame en cualquier red como <strong>/<?= SOCIAL_HANDLE ?></strong> o escríbeme aquí:</p>
+  <p><?= content('contacto_intro') ?></p>
 
   <?php if ($sent): ?>
-    <div class="alert alert-ok">✅ ¡Mensaje enviado! Te responderé pronto. Gracias por escribir.</div>
+    <div class="alert alert-ok"><?= e(t('contact_ok')) ?></div>
   <?php elseif ($error): ?>
     <div class="alert alert-err"><?= e($error) ?></div>
   <?php endif; ?>
@@ -73,33 +83,33 @@ page_head('Contacto', 'Contacta a Jorge Avila Meléndez, autor del ejercicio Jue
     <form method="post" id="contactForm">
       <div class="form-grid">
         <div class="form-group">
-          <label for="nombre">Nombre</label>
+          <label for="nombre"><?= e(t('contact_form_name')) ?></label>
           <input type="text" id="nombre" name="nombre" required maxlength="100" value="<?= e($_POST['nombre'] ?? '') ?>">
         </div>
         <div class="form-group">
-          <label for="email">Email</label>
+          <label for="email"><?= e(t('contact_form_email')) ?></label>
           <input type="email" id="email" name="email" required maxlength="150" value="<?= e($_POST['email'] ?? '') ?>">
         </div>
       </div>
       <div class="form-group">
-        <label for="mensaje">Mensaje</label>
+        <label for="mensaje"><?= e(t('contact_form_msg')) ?></label>
         <textarea id="mensaje" name="mensaje" rows="6" required maxlength="3000"><?= e($_POST['mensaje'] ?? '') ?></textarea>
       </div>
       <div class="hp-field" aria-hidden="true">
-        <label>No llenar este campo</label>
+        <label><?= e(t('contact_hp')) ?></label>
         <input type="text" name="website" tabindex="-1" autocomplete="off">
       </div>
-      <?php if (RECAPTCHA_SITE_KEY !== ''): ?>
+      <?php if ($captchaKey !== ''): ?>
         <input type="hidden" name="g-recaptcha-response" id="gRecaptchaResponse">
       <?php endif; ?>
-      <button type="submit" class="btn">Enviar mensaje</button>
+      <button type="submit" class="btn"><?= e(t('contact_form_send')) ?></button>
     </form>
   </div>
   <?php endif; ?>
 </div>
 
-<?php if (RECAPTCHA_SITE_KEY !== '' && !$sent): ?>
-<script src="https://www.google.com/recaptcha/api.js?render=<?= e(RECAPTCHA_SITE_KEY) ?>"></script>
+<?php if ($captchaKey !== '' && !$sent): ?>
+<script src="https://www.google.com/recaptcha/api.js?render=<?= e($captchaKey) ?>"></script>
 <script>
 document.getElementById('contactForm').addEventListener('submit', function (e) {
   var hidden = document.getElementById('gRecaptchaResponse');
@@ -107,7 +117,7 @@ document.getElementById('contactForm').addEventListener('submit', function (e) {
   e.preventDefault();
   var form = this;
   grecaptcha.ready(function () {
-    grecaptcha.execute('<?= e(RECAPTCHA_SITE_KEY) ?>', { action: 'contacto' }).then(function (token) {
+    grecaptcha.execute('<?= e($captchaKey) ?>', { action: 'contacto' }).then(function (token) {
       hidden.value = token;
       form.submit();
     });

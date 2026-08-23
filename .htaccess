@@ -1,15 +1,20 @@
-# Jueves de Satoshi — Seguridad básica
+# Jueves de Satoshi — Seguridad y URLs limpias
 
 # Proteger archivos sensibles
-<FilesMatch "^(config\.php|config\.example\.php|schema\.sql|seed\.sql)$">
+<FilesMatch "^(config\.php|config\.example\.php|schema\.sql|.*\.sql|.*\.md)$">
   Require all denied
 </FilesMatch>
 
 # Sin listado de directorios
 Options -Indexes
 
-# Forzar HTTPS (descomentar al activar SSL en cPanel)
-# RewriteEngine On
+RewriteEngine On
+
+# robots.txt y sitemap.xml se generan con la marca de cada instalación
+RewriteRule ^robots\.txt$ robots.php [L]
+RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
+# Forzar HTTPS (descomentar al activar SSL en el hosting)
 # RewriteCond %{HTTPS} off
 # RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
 
@@ -18,4 +23,5 @@ Options -Indexes
   Header set X-Content-Type-Options "nosniff"
   Header set X-Frame-Options "SAMEORIGIN"
   Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"
 </IfModule>

@@ -1,9 +1,20 @@
-# Configuración con credenciales reales — nunca subir
+# Configuración con credenciales: NUNCA se versiona
 config.php
 
-# Archivos del sistema
+# Módulo del hub: vive en su propio repositorio privado
+modules/hub/
+
+# Imágenes que sube el dueño de cada instalación
+assets/img/avatar-*
+assets/img/logo-*
+assets/img/jorge-avila.jpg
+# ...pero el avatar de respaldo SÍ es parte de la distribución: sin él, una
+# instalación nueva muestra una imagen rota en la hoja de contacto.
+!assets/img/avatar-placeholder.svg
+
+# Basura del sistema
 .DS_Store
-**/.DS_Store
+*.log
 
 # Compresos / respaldos locales
 *.zip
@@ -11,3 +22,6 @@ config.php
 # Editores
 .vscode/
 .idea/
+
+# Logotipo del sitio maestro (no se distribuye)
+assets/img/logo.svg

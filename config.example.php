@@ -1,39 +1,39 @@
 <?php
 /**
- * Jueves de Satoshi — Configuración
- * Copia este archivo como config.php y ajusta los valores.
- * IMPORTANTE: config.php NUNCA debe subirse a repositorios públicos.
+ * Jueves de Satoshi — Configuración (v2)
+ *
+ * Este archivo guarda SOLO secretos e infraestructura.
+ * La identidad, la marca y los textos del sitio NO viven aquí: viven en la
+ * base de datos y se editan desde el panel de administración.
+ *
+ * Normalmente no necesitas tocar este archivo: el instalador (install.php)
+ * lo genera por ti. IMPORTANTE: config.php nunca debe subirse a un repositorio.
  */
 
-// --- Base de datos (MySQL, cPanel) ---
+// --- Base de datos ---
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'usuario_satoshi');
 define('DB_USER', 'usuario_satoshi');
 define('DB_PASS', 'TU_PASSWORD_AQUI');
 
-// --- Sitio ---
-define('SITE_NAME', 'Jueves de Satoshi');
-define('SITE_URL', 'https://satoshi.jorgeavila.com'); // sin slash final
-define('SITE_AUTHOR', 'Jorge Avila Meléndez');
-define('SOCIAL_HANDLE', 'jorgeavilam'); // /jorgeavilam en todas las redes
-
-// --- Admin ---
-// El usuario y contraseña viven en la tabla `users` de la base de datos.
-// Acceso inicial: jorge / cambiame123 — cámbiala en Admin → Contraseña al primer ingreso.
+// --- Dirección de esta instalación (sin slash final) ---
+define('SITE_URL', 'https://satoshi.tu-dominio.com');
 
 // --- Formulario de contacto ---
-define('CONTACT_EMAIL', 'tu-correo@ejemplo.com'); // nunca se muestra en el sitio
-define('CONTACT_FROM', 'no-reply@tu-dominio.com');  // remitente del servidor (debe existir en cPanel)
+define('CONTACT_EMAIL', 'tu-correo@ejemplo.com'); // destino; nunca se muestra en el sitio
+define('CONTACT_FROM', 'no-reply@tu-dominio.com'); // remitente; debe existir en tu hosting
 
 // --- Precio en vivo de BTC (CoinGecko, gratis, sin API key) ---
-define('PRICE_CACHE_MINUTES', 10); // minutos de caché del precio
+define('PRICE_CACHE_MINUTES', 10);
 
-// --- Tracking y seguridad (deja en '' para desactivar) ---
-define('GA4_ID', '');            // ej. 'G-XXXXXXXXXX'  (Google Analytics 4)
-define('GTM_ID', '');            // ej. 'GTM-XXXXXXX'   (Google Tag Manager)
-define('META_PIXEL_ID', '');     // ej. '1234567890'    (Meta Pixel)
-define('RECAPTCHA_SITE_KEY', 'TU_RECAPTCHA_SITE_KEY_AQUI'); // Google reCAPTCHA v3
-define('RECAPTCHA_SECRET', 'TU_RECAPTCHA_SECRET_AQUI');
+// --- Tracking y anti-spam (deja en '' para desactivar) ---
+define('GA4_ID', '');        // ej. 'G-XXXXXXXXXX'
+define('GTM_ID', '');        // ej. 'GTM-XXXXXXX'
+define('META_PIXEL_ID', ''); // ej. '1234567890'
+define('RECAPTCHA_SITE_KEY', '');
+define('RECAPTCHA_SECRET', '');
 
-// --- Zona horaria ---
-date_default_timezone_set('America/Monterrey');
+// --- Sitio maestro del proyecto ---
+// Los nodos se registran aquí y enlazan de vuelta en el badge de atribución.
+// No lo cambies salvo que estés operando tu propia red.
+define('HUB_URL', 'https://satoshi.jorgeavila.com');

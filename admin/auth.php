@@ -29,7 +29,7 @@ function csrf_token(): string {
 function check_csrf(): void {
     if (!hash_equals($_SESSION['csrf'] ?? '', $_POST['csrf'] ?? '')) {
         http_response_code(403);
-        die('Token CSRF inválido.');
+        die(t('csrf_bad'));
     }
 }
 
@@ -48,11 +48,11 @@ function try_login(string $user, string $pass): bool {
 }
 
 function change_password(int $userId, string $current, string $new): string {
-    if (strlen($new) < 8) return 'La nueva contraseña debe tener al menos 8 caracteres.';
+    if (strlen($new) < 8) return t('admin_pass_short');
     $st = db()->prepare('SELECT pass_hash FROM users WHERE id = ?');
     $st->execute([$userId]);
     $hash = $st->fetchColumn();
-    if (!$hash || !password_verify($current, $hash)) return 'La contraseña actual no es correcta.';
+    if (!$hash || !password_verify($current, $hash)) return t('admin_pass_wrong');
     $st = db()->prepare('UPDATE users SET pass_hash = ? WHERE id = ?');
     $st->execute([password_hash($new, PASSWORD_DEFAULT), $userId]);
     return ''; // sin error = éxito

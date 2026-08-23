@@ -1,0 +1,22 @@
+#!/bin/sh
+# Red de seguridad del repositorio público.
+#
+# El .gitignore ya excluye estas rutas, pero un `git add -f`, o una línea borrada
+# por accidente, alcanzan para publicar lo que no debe salir. Este gancho revisa
+# lo que de verdad está a punto de entrar al commit.
+# --diff-filter=ACMR: solo lo que se agrega o modifica. Borrar estos
+# archivos del repositorio sí es válido — de hecho es lo que hay que hacer.
+prohibido=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(modules/hub/|config\.php$|assets/img/jorge-avila\.jpg$|assets/img/logo\.svg$)' || true)
+
+if [ -n "$prohibido" ]; then
+  echo "✋ Este commit incluye archivos que no van en el repositorio público:"
+  echo "$prohibido" | sed 's/^/   /'
+  echo ""
+  echo "   modules/hub/     -> vive en el repositorio privado jds-hub"
+  echo "   config.php       -> credenciales"
+  echo "   jorge-avila.jpg  -> activos reservados en BRAND.md"
+  echo "   logo.svg         -> activos reservados en BRAND.md"
+  echo ""
+  echo "   Si de verdad quieres incluirlos: git commit --no-verify"
+  exit 1
+fi
