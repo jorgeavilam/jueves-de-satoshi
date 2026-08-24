@@ -8,7 +8,7 @@
  *
  * Requiere entrar con el usuario administrador del sitio.
  */
-define('JDS_SETUP_VERSION', '2.0.7');
+define('JDS_SETUP_VERSION', '2.0.8');
 
 require_once __DIR__ . '/includes/migrate.php';
 require_once __DIR__ . '/includes/functions.php';

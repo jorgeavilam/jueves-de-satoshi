@@ -8,7 +8,7 @@
  *
  * Cuando termina, BÓRRALO del servidor.
  */
-define('JDS_SETUP_VERSION', '2.0.7');
+define('JDS_SETUP_VERSION', '2.0.8');
 
 require_once __DIR__ . '/includes/setup.php';     // i18n + e() + chrome, sin base de datos
 require_once __DIR__ . '/includes/brandkit.php';

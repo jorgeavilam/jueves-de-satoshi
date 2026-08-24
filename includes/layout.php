@@ -183,7 +183,7 @@ function page_foot(): void {
     </div>
     <div class="footer-col footer-disclaimer">
       <p><strong><?= e(t('footer_disclaimer_title')) ?></strong> <?= e(t('footer_disclaimer')) ?></p>
-      <p>© <?= date('Y') ?> <?= e(owner_name()) ?></p>
+      <p>© <?= date('Y') ?> <?= e(owner_name()) ?> <span class="footer-version">v<?= e(JDS_VERSION) ?></span></p>
       <p class="footer-links">
         <?php if (is_hub()): ?>
           <?php // Los dos enlaces van en un solo ítem del flex, para que el

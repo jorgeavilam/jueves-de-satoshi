@@ -123,7 +123,7 @@ mismos días al mismo precio. Y cambia cada semana.
 
 ## Módulos
 
-`modules/` es un punto de extensión. Un módulo es una carpeta con un `module.php`
+`modules/` es un punto de extensión, documentado en `modules/README.md`. Un módulo es una carpeta con un `module.php`
 que puede declarar entradas en el menú del panel y textos propios de idioma. No
 hay bandera de configuración que lo active: un módulo existe o no existe en el
 servidor.
