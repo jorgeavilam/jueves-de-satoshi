@@ -30,6 +30,7 @@ if (!is_logged_in()) {
           <div class="form-group"><label><?= e(t('admin_pass')) ?></label><input type="password" name="password" required autocomplete="current-password"></div>
           <button class="btn" type="submit" name="login" value="1"><?= e(t('admin_enter')) ?></button>
         </form>
+        <p style="margin-top:14px;font-size:0.9rem"><a href="<?= e(SITE_URL) ?>/admin/recuperar.php"><?= e(t('reset_forgot')) ?></a></p>
       </div>
     </div>
     <?php
