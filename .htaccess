@@ -15,6 +15,13 @@ RewriteRule ^robots\.txt$ robots.php [L]
 RewriteRule ^sitemap\.xml$ sitemap.php [L]
 RewriteRule ^llms\.txt$ llms.php [L]
 
+# URLs limpias de los años: /2026 sirve year.php?y=2026.
+# La bandera E= le avisa a PHP que esta regla existe: el sitio solo genera
+# enlaces cortos cuando de verdad funcionan, así que un .htaccess viejo no
+# deja enlaces rotos.
+RewriteRule ^ - [E=JDS_CLEAN_URLS:1]
+RewriteRule ^([0-9]{4})/?$ year.php?y=$1 [L,QSA]
+
 # Forzar HTTPS (descomentar al activar SSL en el hosting)
 # RewriteCond %{HTTPS} off
 # RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]

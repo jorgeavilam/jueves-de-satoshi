@@ -128,6 +128,33 @@ foreach ([
         sprintf('btc %.2f + tc %.2f = %.2f', $b['btc'], $b['fx'], $total));
 }
 
+/* ---------- 4c. La imagen para compartir se dibuja en los casos difíciles ---------- */
+require_once __DIR__ . '/../includes/sharecard.php';
+echo "\nImagen para compartir\n";
+if (!og_card_available()) {
+    echo "  ⚠️  sin GD con FreeType en este PHP: los sitios caen al logo o al avatar\n";
+} else {
+    $base = ['site' => 'Sitio de Prueba', 'subtitle' => 'Compras de Bitcoin 2026', 'host' => 'satoshi.ejemplo.com',
+             'owner' => 'Nombre Apellido', 'accent' => '#F7931A', 'big' => '+24.69%', 'tone' => 'pos', 'line' => '2,252,166 sats'];
+    foreach ([
+        'zigzag 52'        => ['prices' => array_map(fn($i) => $i % 2 ? 900000 : 1500000, range(1, 52))],
+        'tres compras'     => ['prices' => [1, 2, 3]],
+        'sin compras'      => ['prices' => [], 'big' => '', 'line' => 'La primera compra está por llegar'],
+        'nombre larguísimo' => ['site' => str_repeat('Satoshi los jueves ', 6), 'prices' => range(1, 30)],
+        'acento negro'     => ['accent' => '#000000', 'tone' => 'neg', 'prices' => range(30, 1)],
+    ] as $caso => $c) {
+        try {
+            $png = og_render($c + $base);
+            $info = getimagesizefromstring($png);
+            $ok("tarjeta: $caso", $info && $info[0] === OG_W && $info[1] === OG_H && $info['mime'] === 'image/png');
+        } catch (Throwable $e) {
+            $ok("tarjeta: $caso", false, $e->getMessage());
+        }
+    }
+    [$r, $g, $b] = og_accent('#000000');
+    $ok('un acento negro se aclara sobre el fondo oscuro', $r > 90 && $g > 90 && $b > 90, "rgb($r, $g, $b)");
+}
+
 /* ---------- 5. Cada clase del HTML tiene regla en el CSS ---------- */
 echo "\nEstilos\n";
 $css = (string)file_get_contents(__DIR__ . '/../assets/css/styles.css');
@@ -173,7 +200,8 @@ echo "\nArchivos de la distribución\n";
 $raiz = dirname(__DIR__);
 $necesarios = ['assets/img/avatar-placeholder.svg', 'assets/css/styles.css',
                'assets/js/app.js', 'assets/js/charts.js', 'schema.sql',
-               'lang/es.php', 'lang/en.php', 'config.example.php'];
+               'lang/es.php', 'lang/en.php', 'config.example.php',
+               'includes/fonts/Inter-Regular.ttf', 'includes/fonts/Inter-ExtraBold.ttf', 'includes/fonts/OFL.txt'];
 foreach ($necesarios as $rel) {
     $existe = is_readable($raiz . '/' . $rel);
     $versionado = true;

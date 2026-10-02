@@ -18,26 +18,12 @@ $amounts = privacy_mode() === 'full';
 $prices  = live_prices();
 $line    = function (string $s): string { return trim(preg_replace('/\s+/u', ' ', $s)); };
 
-$g = ['compras' => 0, 'planned' => 0, 'sats' => 0, 'inv' => 0.0, 'val' => 0.0, 'streak' => 0, 'first' => ''];
-$yearLines = []; $all = [];
-foreach (get_years() as $yr) {
-    $p = get_purchases((int)$yr['id']);
-    if (!$p) continue;
-    $s = year_summary($p, $prices);
-    $planned = planned_purchases($yr, $p);
-    $g['compras'] += $s['compras'];
-    $g['planned'] += $planned;
-    $g['sats']    += $s['sats'];
-    $g['inv']     += $s['invertido'];
-    $g['val']     += $s['valor'];
-    $all = array_merge($all, $p);
-    $yearLines[] = '- [' . (int)$yr['year'] . '](' . SITE_URL . '/year.php?y=' . (int)$yr['year'] . '): '
-                 . $line(year_summary_text((int)$yr['year'], $s, $planned, (float)$yr['weekly_amount'], $amounts));
-}
-if ($all) {
-    usort($all, fn($a, $b) => strcmp($a['fecha'], $b['fecha']));
-    $g['first']  = $all[0]['fecha'];
-    $g['streak'] = purchase_streak($all);
+$g = site_totals($prices);
+$yearLines = [];
+foreach ($g['years'] as $y) {
+    $yr = $y['row'];
+    $yearLines[] = '- [' . (int)$yr['year'] . '](' . year_url((int)$yr['year']) . '): '
+                 . $line(year_summary_text((int)$yr['year'], $y['sum'], $y['planned'], (float)$yr['weekly_amount'], $amounts));
 }
 
 $out  = '# ' . $line(site_name()) . "\n\n";

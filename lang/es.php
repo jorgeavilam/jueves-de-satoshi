@@ -53,6 +53,11 @@ return [
     'llms_network'      => 'La red',
     'llms_page_network' => 'los sitios que hacen el mismo ejercicio con este software',
     'llms_based_on'     => 'Este sitio usa el software abierto y el método de %1$s (%2$s).',
+    'og_line_year'      => 'de rendimiento · %1$s sats · %2$d de %3$d compras',
+    'og_line_year_pct'  => 'compras realizadas · racha de %d seguidas',
+    'og_line_home'      => 'de rendimiento · %1$s sats · %2$d compras desde %3$s',
+    'og_line_home_pct'  => 'compras cada %1$s desde %2$s · racha de %3$d',
+    'og_empty'          => 'La primera compra está por llegar',
 
     /* ---- Portada ---- */
     'live_price_label'  => 'Precio en vivo',

@@ -53,6 +53,11 @@ return [
     'llms_network'      => 'The network',
     'llms_page_network' => 'the sites doing the same practice with this software',
     'llms_based_on'     => 'This site uses the open-source software and method of %1$s (%2$s).',
+    'og_line_year'      => 'return · %1$s sats · %2$d of %3$d purchases',
+    'og_line_year_pct'  => 'purchases made · streak of %d in a row',
+    'og_line_home'      => 'return · %1$s sats · %2$d purchases since %3$s',
+    'og_line_home_pct'  => 'purchases every %1$s since %2$s · streak of %3$d',
+    'og_empty'          => 'The first purchase is on its way',
 
     /* ---- Home ---- */
     'live_price_label'  => 'Live price',

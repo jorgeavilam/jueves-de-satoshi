@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/sharecard.php';
 
 jds_boot();
 
@@ -41,25 +42,50 @@ function public_gate(): void {
  *
  * Se arma desde la ruta del archivo relativa a la raíz de la app, y no desde
  * SCRIPT_NAME, para que una instalación en subcarpeta no duplique el prefijo.
- * year.php conserva su ?y=: sin él, todos los años declaraban la misma URL y
- * Google podía tirar del índice todos menos uno.
+ * Cada año tiene la suya (/2026 o year.php?y=2026): con una sola URL para
+ * todos, Google podía tirar del índice todos menos uno.
  */
 function canonical_url(): string {
-    $root = realpath(__DIR__ . '/..') ?: '';
-    $file = realpath($_SERVER['SCRIPT_FILENAME'] ?? '') ?: '';
-    $rel  = ($root !== '' && strpos($file, $root) === 0)
-          ? str_replace('\\', '/', substr($file, strlen($root)))
-          : '/' . basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
+    $rel = current_script();
     if ($rel === '/index.php') return SITE_URL . '/';
-    if ($rel === '/year.php') return SITE_URL . '/year.php?y=' . (int)($_GET['y'] ?? date('Y'));
+    if ($rel === '/year.php') return year_url((int)($_GET['y'] ?? date('Y')));
     return SITE_URL . $rel;
 }
 
+/** Archivo que atiende la petición, relativo a la raíz de la app: «/year.php». */
+function current_script(): string {
+    $root = realpath(__DIR__ . '/..') ?: '';
+    $file = realpath($_SERVER['SCRIPT_FILENAME'] ?? '') ?: '';
+    return ($root !== '' && strpos($file, $root) === 0)
+         ? str_replace('\\', '/', substr($file, strlen($root)))
+         : '/' . basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
+}
+
 /**
- * Imagen para compartir. Facebook, X y LinkedIn no aceptan SVG, así que solo
- * va un logo o un avatar subidos en formato de imagen; si no hay, no se declara.
+ * Imagen para compartir.
+ *
+ * Primero la tarjeta generada (og.php): la del año en year.php y la del
+ * recorrido en las demás páginas. El ?v= cambia con cada compra para que las
+ * redes, que guardan la imagen por URL, vean la nueva.
+ *
+ * Si el hosting no tiene GD con FreeType, o el sitio está en bóveda, cae al
+ * logo o al avatar subidos en formato de imagen: Facebook, X y LinkedIn no
+ * aceptan SVG. Si tampoco hay, no se declara.
  */
 function og_image_url(): string {
+    if (og_card_available() && privacy_mode() !== 'vault') {
+        $year = current_script() === '/year.php' ? (int)($_GET['y'] ?? date('Y')) : 0;
+        $sql  = 'SELECT MAX(p.fecha) FROM purchases p JOIN years y ON y.id = p.year_id WHERE y.deleted = 0'
+              . ($year ? ' AND y.year = ?' : '');
+        $st = db()->prepare($sql);
+        $st->execute($year ? [$year] : []);
+        $ver = str_replace('-', '', (string)$st->fetchColumn()) . '-' . substr(md5(privacy_mode() . current_locale() . JDS_VERSION), 0, 6);
+        return SITE_URL . '/og.php?' . ($year ? 'y=' . $year . '&' : '') . 'v=' . $ver;
+    }
+    return og_static_image_url();
+}
+
+function og_static_image_url(): string {
     $raster = function (string $f): bool { return (bool)preg_match('/\.(png|jpe?g|webp|gif)$/i', $f); };
     $logo = get_setting('logo_mode', 'mono') === 'upload' ? get_setting('logo_file', '') : '';
     if ($logo !== '' && $raster($logo) && is_readable(__DIR__ . '/../assets/img/' . $logo)) {
@@ -94,8 +120,11 @@ function page_head(string $title, string $description = '', bool $noindex = fals
 <meta property="og:url" content="<?= e($canon) ?>">
 <meta property="og:description" content="<?= e($desc) ?>">
 <?php if ($ogImg !== ''): ?><meta property="og:image" content="<?= e($ogImg) ?>">
-<?php endif; ?>
-<meta name="twitter:card" content="summary">
+<?php if (strpos($ogImg, '/og.php') !== false): ?><meta property="og:image:width" content="<?= OG_W ?>">
+<meta property="og:image:height" content="<?= OG_H ?>">
+<meta property="og:image:alt" content="<?= e($full) ?>">
+<?php endif; endif; ?>
+<meta name="twitter:card" content="<?= strpos($ogImg, '/og.php') !== false ? 'summary_large_image' : 'summary' ?>">
 <link rel="canonical" href="<?= e($canon) ?>">
 <link rel="alternate" type="text/plain" title="llms.txt" href="<?= e(SITE_URL) ?>/llms.txt">
 <link rel="icon" href="<?= e(logo_url()) ?>">

@@ -6,6 +6,13 @@ public_gate();
 if (privacy_mode() === 'vault' && !viewer_is_owner()) { header('Location: ' . SITE_URL . '/'); exit; }
 
 $selYear = (int)($_GET['y'] ?? date('Y'));
+
+// Con URLs limpias, la dirección vieja manda a la nueva con un 301: Google le
+// pasa la autoridad a /2026 y no quedan dos URLs para el mismo año.
+$reqPath = (string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+if (clean_urls() && isset($_GET['y']) && substr($reqPath, -9) === '/year.php') {
+    header('Location: ' . year_url($selYear), true, 301); exit;
+}
 $yearRow = get_year($selYear);
 if (!$yearRow) { header('Location: ' . SITE_URL . '/'); exit; }
 
@@ -55,7 +62,7 @@ page_head(t('year_page_title', (string)$selYear), count($purchases) ? year_summa
     <?php if (count($years) > 1): ?>
     <p class="year-switch">
       <?php foreach ($years as $yr): ?>
-        <a class="btn <?= (int)$yr['year'] === $selYear ? '' : 'btn-outline' ?>" href="?y=<?= (int)$yr['year'] ?>"><?= (int)$yr['year'] ?></a>
+        <a class="btn <?= (int)$yr['year'] === $selYear ? '' : 'btn-outline' ?>" href="<?= e(year_url((int)$yr['year'])) ?>"><?= (int)$yr['year'] ?></a>
       <?php endforeach; ?>
     </p>
     <?php endif; ?>

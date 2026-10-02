@@ -169,7 +169,7 @@ if (privacy_mode() === 'vault'): ?>
       <?php foreach ($yearCards as $yc):
         $yr = $yc['year']; $s = $yc['sum']; $planned = $yc['planned'];
         $prog = $planned ? min(100, $s['compras'] / $planned * 100) : 0; ?>
-      <a class="year-card" href="<?= SITE_URL ?>/year.php?y=<?= (int)$yr['year'] ?>">
+      <a class="year-card" href="<?= e(year_url((int)$yr['year'])) ?>">
         <div class="year-num"><?= (int)$yr['year'] ?></div>
         <div class="kpi-sub">
           <?= show_amounts()

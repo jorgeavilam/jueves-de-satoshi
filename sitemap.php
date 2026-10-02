@@ -12,7 +12,7 @@ if (site_ready() && privacy_mode() !== 'vault') {
     }
     $urls[] = ['loc' => SITE_URL . '/', 'pri' => '1.0', 'mod' => $last ? max($last) : null];
     foreach (get_years() as $yr) {
-        $urls[] = ['loc' => SITE_URL . '/year.php?y=' . (int)$yr['year'], 'pri' => '0.8', 'mod' => $last[(int)$yr['year']] ?? null];
+        $urls[] = ['loc' => year_url((int)$yr['year']), 'pri' => '0.8', 'mod' => $last[(int)$yr['year']] ?? null];
     }
     if (get_setting('ejercicio_mode', 'link') === 'own') {
         $urls[] = ['loc' => SITE_URL . '/acerca.php', 'pri' => '0.7'];

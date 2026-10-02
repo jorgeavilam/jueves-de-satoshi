@@ -24,7 +24,7 @@ if (!defined('META_PIXEL_ID'))       define('META_PIXEL_ID', '');
 if (!defined('RECAPTCHA_SITE_KEY'))  define('RECAPTCHA_SITE_KEY', '');
 if (!defined('RECAPTCHA_SECRET'))    define('RECAPTCHA_SECRET', '');
 
-const JDS_VERSION  = '2.2.0';
+const JDS_VERSION  = '2.3.0';
 const SATS_PER_BTC = 100000000;
 
 /** Naranja Bitcoin: el acento del sitio maestro. Sirve de referencia, no de default. */
@@ -389,6 +389,23 @@ function live_prices(): array {
     return $data;
 }
 
+/* ---------- URLs ---------- */
+
+/**
+ * ¿Están activas las URLs limpias (/2026)?
+ *
+ * Las enciende la regla del .htaccess con [E=JDS_CLEAN_URLS:1]; después de un
+ * rewrite, Apache le antepone REDIRECT_ al nombre. Sin la regla —un .htaccess
+ * que no se actualizó, o `php -S` en local— el sitio sigue con year.php?y=.
+ */
+function clean_urls(): bool {
+    return !empty($_SERVER['JDS_CLEAN_URLS']) || !empty($_SERVER['REDIRECT_JDS_CLEAN_URLS']);
+}
+
+function year_url(int $year): string {
+    return clean_urls() ? SITE_URL . '/' . $year : SITE_URL . '/year.php?y=' . $year;
+}
+
 /* ---------- Datos ---------- */
 
 function get_years(bool $includeDeleted = false): array {
@@ -533,6 +550,35 @@ function year_summary_text(int $year, array $ys, int $planned, float $weekly, bo
         $s .= ' ' . t('ysum_fx', fmt_pct($ys['efecto_btc'] / $ys['invertido']), fmt_pct($ys['efecto_fx'] / $ys['invertido']));
     }
     return $s;
+}
+
+/**
+ * El recorrido completo: lo que site_summary_text() necesita, más los precios
+ * de todas las compras en orden para dibujar el riel.
+ */
+function site_totals(array $prices): array {
+    $g = ['compras' => 0, 'planned' => 0, 'sats' => 0, 'inv' => 0.0, 'val' => 0.0, 'streak' => 0, 'first' => '', 'prices' => [], 'years' => []];
+    $all = [];
+    foreach (get_years() as $yr) {
+        $p = get_purchases((int)$yr['id']);
+        if (!$p) continue;
+        $s = year_summary($p, $prices);
+        $planned = planned_purchases($yr, $p);
+        $g['compras'] += $s['compras'];
+        $g['planned'] += $planned;
+        $g['sats']    += $s['sats'];
+        $g['inv']     += $s['invertido'];
+        $g['val']     += $s['valor'];
+        $g['years'][] = ['row' => $yr, 'sum' => $s, 'planned' => $planned];
+        $all = array_merge($all, $p);
+    }
+    if ($all) {
+        usort($all, fn($a, $b) => strcmp($a['fecha'], $b['fecha']));
+        $g['first']  = $all[0]['fecha'];
+        $g['streak'] = purchase_streak($all);
+        $g['prices'] = array_map(fn($p) => (float)$p['precio_local_btc'], $all);
+    }
+    return $g;
 }
 
 /**
