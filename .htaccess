@@ -10,9 +10,10 @@ Options -Indexes
 
 RewriteEngine On
 
-# robots.txt y sitemap.xml se generan con la marca de cada instalación
+# robots.txt, sitemap.xml y llms.txt se generan con la marca de cada instalación
 RewriteRule ^robots\.txt$ robots.php [L]
 RewriteRule ^sitemap\.xml$ sitemap.php [L]
+RewriteRule ^llms\.txt$ llms.php [L]
 
 # Forzar HTTPS (descomentar al activar SSL en el hosting)
 # RewriteCond %{HTTPS} off

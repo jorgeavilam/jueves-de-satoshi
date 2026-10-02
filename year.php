@@ -18,7 +18,28 @@ $prog      = $planned ? min(100, $ys['compras'] / $planned * 100) : 0;
 $cur       = currency_code();
 $dayName   = day_name(purchase_day());
 
-page_head(t('dashboard_title', (string)$selYear));
+// La misma frase va en la meta description, en la página y en el JSON-LD
+$summary = count($purchases)
+    ? year_summary_text($selYear, $ys, $planned, (float)$yearRow['weekly_amount'], show_amounts())
+    : '';
+$ld = [];
+if (count($purchases)) {
+    $vars = show_amounts()
+        ? [t('ld_var_date'), t('ld_var_amount'), t('ld_var_price'), t('ld_var_sats')]
+        : [t('ld_var_date'), t('ld_var_price')];
+    if (!is_usd_site()) $vars[] = t('ld_var_fx');
+    $ld[] = [
+        '@type'               => 'Dataset',
+        'name'                => t('year_page_title', (string)$selYear) . ' — ' . site_name(),
+        'description'         => $summary,
+        'url'                 => canonical_url(),
+        'temporalCoverage'    => $purchases[0]['fecha'] . '/' . end($purchases)['fecha'],
+        'creator'             => ['@id' => SITE_URL . '/#owner'],
+        'isAccessibleForFree' => true,
+        'variableMeasured'    => $vars,
+    ];
+}
+page_head(t('year_page_title', (string)$selYear), count($purchases) ? year_summary_text($selYear, $ys, $planned, (float)$yearRow['weekly_amount'], show_amounts(), false) : '', false, $ld);
 ?>
 
 <section class="hero">
@@ -50,6 +71,7 @@ page_head(t('dashboard_title', (string)$selYear));
 <section class="block" id="dashboard">
   <div class="container">
     <h2><?= e(t('dashboard_title', (string)$selYear)) ?></h2>
+    <p class="year-summary"><?= e($summary) ?></p>
     <p class="section-sub"><?= show_amounts() ? e(t('dashboard_sub')) : e(t('privacy_pct_note')) ?></p>
 
     <?php if (show_amounts()): ?>

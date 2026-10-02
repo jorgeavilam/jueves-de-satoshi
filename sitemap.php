@@ -5,9 +5,14 @@ header('Content-Type: application/xml; charset=utf-8');
 
 $urls = [];
 if (site_ready() && privacy_mode() !== 'vault') {
-    $urls[] = ['loc' => SITE_URL . '/', 'pri' => '1.0'];
+    // lastmod = la última compra: es lo único que cambia la portada y cada año
+    $last = [];
+    foreach (db()->query('SELECT y.year, MAX(p.fecha) AS f FROM years y JOIN purchases p ON p.year_id = y.id WHERE y.deleted = 0 GROUP BY y.year') as $r) {
+        $last[(int)$r['year']] = $r['f'];
+    }
+    $urls[] = ['loc' => SITE_URL . '/', 'pri' => '1.0', 'mod' => $last ? max($last) : null];
     foreach (get_years() as $yr) {
-        $urls[] = ['loc' => SITE_URL . '/year.php?y=' . (int)$yr['year'], 'pri' => '0.8'];
+        $urls[] = ['loc' => SITE_URL . '/year.php?y=' . (int)$yr['year'], 'pri' => '0.8', 'mod' => $last[(int)$yr['year']] ?? null];
     }
     if (get_setting('ejercicio_mode', 'link') === 'own') {
         $urls[] = ['loc' => SITE_URL . '/acerca.php', 'pri' => '0.7'];
@@ -22,6 +27,7 @@ if (site_ready() && privacy_mode() !== 'vault') {
 echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
 foreach ($urls as $u) {
-    echo "  <url><loc>" . e($u['loc']) . "</loc><priority>{$u['pri']}</priority></url>\n";
+    $mod = !empty($u['mod']) ? '<lastmod>' . e($u['mod']) . '</lastmod>' : '';
+    echo "  <url><loc>" . e($u['loc']) . "</loc>$mod<priority>{$u['pri']}</priority></url>\n";
 }
 echo '</urlset>';

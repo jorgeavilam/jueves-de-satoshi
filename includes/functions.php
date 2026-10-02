@@ -24,7 +24,7 @@ if (!defined('META_PIXEL_ID'))       define('META_PIXEL_ID', '');
 if (!defined('RECAPTCHA_SITE_KEY'))  define('RECAPTCHA_SITE_KEY', '');
 if (!defined('RECAPTCHA_SECRET'))    define('RECAPTCHA_SECRET', '');
 
-const JDS_VERSION  = '2.1.0';
+const JDS_VERSION  = '2.2.0';
 const SATS_PER_BTC = 100000000;
 
 /** Naranja Bitcoin: el acento del sitio maestro. Sirve de referencia, no de default. */
@@ -514,6 +514,40 @@ function year_summary(array $purchases, array $prices): array {
         'tc_promedio'   => $fx['fx_avg'],
         'tc_hoy'        => (float)$prices['usd_local'],
     ];
+}
+
+/**
+ * El año en una frase: la meta description, el párrafo visible, el JSON-LD y
+ * llms.txt dicen lo mismo. Es lo que un buscador o un LLM cita, así que lleva
+ * números y no adjetivos. Quien llama decide $amounts según la privacidad.
+ */
+function year_summary_text(int $year, array $ys, int $planned, float $weekly, bool $amounts, bool $withFx = true): string {
+    $day = day_name(purchase_day());
+    if (!$amounts) {
+        return t('ysum_pct', (string)$year, owner_name(), $ys['compras'], $planned, $day, $ys['streak']);
+    }
+    $s = t('ysum_amounts', (string)$year, owner_name(), $ys['compras'], $planned, money_full($weekly), $day,
+           fmt_int($ys['sats']), fmt_num($ys['btc'], 8), money_full($ys['invertido']), money_full($ys['valor']),
+           fmt_pct($ys['pnl_pct']));
+    if ($withFx && !is_usd_site() && $ys['invertido'] > 0) {
+        $s .= ' ' . t('ysum_fx', fmt_pct($ys['efecto_btc'] / $ys['invertido']), fmt_pct($ys['efecto_fx'] / $ys['invertido']));
+    }
+    return $s;
+}
+
+/**
+ * Todo el recorrido en una frase, para la portada y llms.txt.
+ * $g: compras, planned, sats, inv, val, streak y first (fecha de la primera compra).
+ */
+function site_summary_text(array $g, bool $amounts): string {
+    if (empty($g['compras'])) return '';
+    $since = fmt_fecha_corta_anio($g['first']);
+    if (!$amounts) {
+        return t('hsum_pct', owner_name(), $g['compras'], $g['planned'], day_name(purchase_day()), $since, $g['streak']);
+    }
+    $pct = $g['inv'] > 0 ? ($g['val'] - $g['inv']) / $g['inv'] : 0;
+    return t('hsum_amounts', owner_name(), $g['compras'], day_name(purchase_day()), $since,
+             fmt_int($g['sats']), money_full($g['inv']), money_full($g['val']), fmt_pct($pct));
 }
 
 /** Próxima fecha de compra sugerida en el admin. */

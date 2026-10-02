@@ -57,6 +57,30 @@ foreach (JDS_LOCALES as $loc) {
 }
 unset($GLOBALS['jds_locale'], $GLOBALS['jds_lang_ver']);
 
+/* ---------- 3b. Los resúmenes en una frase se redactan en todos los idiomas ----------
+ * Van en la meta description y en el JSON-LD: un %d de más tumba la página del año. */
+echo "\nResúmenes para buscadores y LLMs\n";
+$ys = ['compras' => 28, 'sats' => 2252166, 'btc' => 0.02252166, 'invertido' => 28000.0, 'valor' => 34912.0,
+       'pnl_pct' => 0.2468, 'streak' => 28, 'efecto_btc' => 5454.0, 'efecto_fx' => 1457.0];
+$g  = ['compras' => 28, 'planned' => 42, 'sats' => 2252166, 'inv' => 28000.0, 'val' => 34912.0, 'streak' => 28, 'first' => '2026-03-19'];
+foreach (JDS_LOCALES as $loc) {
+    $GLOBALS['jds_locale'] = $loc;
+    unset($GLOBALS['jds_lang_ver']);
+    foreach (['montos' => true, 'porcentajes' => false] as $modo => $amounts) {
+        try {
+            $y = year_summary_text(2026, $ys, 42, 1000.0, $amounts);
+            $h = site_summary_text($g, $amounts);
+            // Los porcentajes llevan su «%»; lo que no debe quedar es un marcador sin llenar
+            $limpio = trim($y) !== '' && trim($h) !== '' && !preg_match('/%(\d+\$)?[sd]/', $y . $h);
+            $ok("[$loc] año y portada, $modo", $limpio, mb_substr($y, 0, 70) . '…');
+            if (!$amounts) $ok("[$loc] sin montos en $modo", strpos($y . $h, '$') === false && stripos($y . $h, 'sats') === false);
+        } catch (Throwable $e) {
+            $ok("[$loc] año y portada, $modo", false, $e->getMessage());
+        }
+    }
+}
+unset($GLOBALS['jds_locale'], $GLOBALS['jds_lang_ver']);
+
 /* ---------- 4. La montaña rusa no se sale del lienzo ---------- */
 echo "\nMontaña rusa\n";
 $alturaVehiculo = 50; // el pasajero con los brazos en alto, sobre el punto del riel

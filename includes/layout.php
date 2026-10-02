@@ -36,9 +36,45 @@ function public_gate(): void {
     exit;
 }
 
-function page_head(string $title, string $description = '', bool $noindex = false): void {
+/**
+ * Dirección canónica de la página actual.
+ *
+ * Se arma desde la ruta del archivo relativa a la raíz de la app, y no desde
+ * SCRIPT_NAME, para que una instalación en subcarpeta no duplique el prefijo.
+ * year.php conserva su ?y=: sin él, todos los años declaraban la misma URL y
+ * Google podía tirar del índice todos menos uno.
+ */
+function canonical_url(): string {
+    $root = realpath(__DIR__ . '/..') ?: '';
+    $file = realpath($_SERVER['SCRIPT_FILENAME'] ?? '') ?: '';
+    $rel  = ($root !== '' && strpos($file, $root) === 0)
+          ? str_replace('\\', '/', substr($file, strlen($root)))
+          : '/' . basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
+    if ($rel === '/index.php') return SITE_URL . '/';
+    if ($rel === '/year.php') return SITE_URL . '/year.php?y=' . (int)($_GET['y'] ?? date('Y'));
+    return SITE_URL . $rel;
+}
+
+/**
+ * Imagen para compartir. Facebook, X y LinkedIn no aceptan SVG, así que solo
+ * va un logo o un avatar subidos en formato de imagen; si no hay, no se declara.
+ */
+function og_image_url(): string {
+    $raster = function (string $f): bool { return (bool)preg_match('/\.(png|jpe?g|webp|gif)$/i', $f); };
+    $logo = get_setting('logo_mode', 'mono') === 'upload' ? get_setting('logo_file', '') : '';
+    if ($logo !== '' && $raster($logo) && is_readable(__DIR__ . '/../assets/img/' . $logo)) {
+        return SITE_URL . '/assets/img/' . rawurlencode($logo);
+    }
+    if (has_own_avatar() && $raster(get_setting('owner_avatar', ''))) return owner_avatar_url();
+    return '';
+}
+
+function page_head(string $title, string $description = '', bool $noindex = false, array $ld = []): void {
     $site   = site_name() ?: HUB_PROJECT;
     $full   = $title === '' ? $site . ' — ' . t('home_title_suffix') : $title . ' | ' . $site;
+    $desc   = $description ?: t('meta_description', $site);
+    $canon  = canonical_url();
+    $ogImg  = og_image_url();
     $accent = accent_color();
     [$ar, $ag, $ab] = hex_to_rgb($accent);
     $fonts  = font_stacks(font_pair());
@@ -49,15 +85,19 @@ function page_head(string $title, string $description = '', bool $noindex = fals
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= e($full) ?></title>
-<meta name="description" content="<?= e($description ?: t('meta_description', $site)) ?>">
+<meta name="description" content="<?= e($desc) ?>">
 <?php if ($noindex || !show_progress()): ?><meta name="robots" content="noindex, follow">
 <?php endif; ?>
 <meta property="og:title" content="<?= e($full) ?>">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="<?= e($site) ?>">
-<meta property="og:url" content="<?= e(SITE_URL) ?>">
-<meta property="og:description" content="<?= e($description ?: t('meta_description', $site)) ?>">
-<link rel="canonical" href="<?= e(SITE_URL . ($_SERVER['SCRIPT_NAME'] === '/index.php' ? '/' : $_SERVER['SCRIPT_NAME'])) ?>">
+<meta property="og:url" content="<?= e($canon) ?>">
+<meta property="og:description" content="<?= e($desc) ?>">
+<?php if ($ogImg !== ''): ?><meta property="og:image" content="<?= e($ogImg) ?>">
+<?php endif; ?>
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="<?= e($canon) ?>">
+<link rel="alternate" type="text/plain" title="llms.txt" href="<?= e(SITE_URL) ?>/llms.txt">
 <link rel="icon" href="<?= e(logo_url()) ?>">
 <?php if ($gf): ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -81,7 +121,7 @@ function page_head(string $title, string $description = '', bool $noindex = fals
 (function(){var t=localStorage.getItem('jds-theme');if(t)document.documentElement.setAttribute('data-theme',t);})();
 </script>
 <?= tracking_head() ?>
-<?= json_ld() ?>
+<?= json_ld($full, $desc, $ld) ?>
 </head>
 <body>
 <?= tracking_body() ?>
@@ -132,28 +172,46 @@ function brand_name_html(): string {
 }
 
 /**
- * Datos estructurados. Declara al dueño de ESTE sitio como autor, y con
- * isBasedOn deja constancia de que el software y el método vienen del maestro.
- * Nunca un canonical cruzado: eso borraría a los nodos del índice de Google.
+ * Datos estructurados: el sitio, su dueño y la página, enlazados por @id en un
+ * solo @graph; cada página puede sumar nodos propios (year.php agrega un Dataset).
+ * Declara al dueño de ESTE sitio como autor, y con isBasedOn deja constancia de
+ * que el software y el método vienen del maestro. Nunca un canonical cruzado:
+ * eso borraría a los nodos del índice de Google.
  */
-function json_ld(): string {
+function json_ld(string $title = '', string $description = '', array $extra = []): string {
     if (!site_ready()) return '';
-    $data = [
-        '@context' => 'https://schema.org',
-        '@type'    => 'WebSite',
-        'name'     => site_name(),
-        'url'      => SITE_URL,
+    $siteId  = SITE_URL . '/#website';
+    $ownerId = SITE_URL . '/#owner';
+    $site = [
+        '@type'      => 'WebSite',
+        '@id'        => $siteId,
+        'name'       => site_name(),
+        'url'        => SITE_URL . '/',
         'inLanguage' => current_locale(),
-        'author'   => array_filter([
-            '@type' => 'Person',
-            'name'  => owner_name(),
-            'description' => get_setting('owner_bio', '') ?: null,
-            'sameAs' => array_values(array_map(fn($s) => $s['url'], owner_socials())) ?: null,
-        ]),
+        'author'     => ['@id' => $ownerId],
     ];
     if (!is_hub()) {
-        $data['isBasedOn'] = ['@type' => 'WebSite', 'name' => HUB_PROJECT, 'url' => HUB_URL];
+        $site['isBasedOn'] = ['@type' => 'WebSite', 'name' => HUB_PROJECT, 'url' => HUB_URL];
     }
+    $owner = array_filter([
+        '@type'       => 'Person',
+        '@id'         => $ownerId,
+        'name'        => owner_name(),
+        'description' => get_setting('owner_bio', '') ?: null,
+        'image'       => has_own_avatar() ? owner_avatar_url() : null,
+        'sameAs'      => array_values(array_map(fn($s) => $s['url'], owner_socials())) ?: null,
+    ]);
+    $page = array_filter([
+        '@type'       => 'WebPage',
+        '@id'         => canonical_url() . '#webpage',
+        'url'         => canonical_url(),
+        'name'        => $title ?: null,
+        'description' => $description ?: null,
+        'inLanguage'  => current_locale(),
+        'isPartOf'    => ['@id' => $siteId],
+        'author'      => ['@id' => $ownerId],
+    ]);
+    $data = ['@context' => 'https://schema.org', '@graph' => array_merge([$site, $owner, $page], $extra)];
     return '<script type="application/ld+json">'
          . json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP)
          . "</script>\n";

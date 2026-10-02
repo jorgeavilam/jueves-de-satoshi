@@ -57,7 +57,12 @@ if (privacy_mode() === 'vault' && !viewer_is_owner()) {
     exit;
 }
 
-page_head('');
+$siteSummary = site_summary_text([
+    'compras' => $global['compras'], 'planned' => $global['planned'], 'sats' => $global['sats'],
+    'inv' => $global['inv'], 'val' => $globalVal, 'streak' => $streak,
+    'first' => $allPurchases ? $allPurchases[0]['fecha'] : '',
+], show_amounts());
+page_head('', $siteSummary);
 
 if (privacy_mode() === 'vault'): ?>
   <div class="container" style="padding-top:18px">
