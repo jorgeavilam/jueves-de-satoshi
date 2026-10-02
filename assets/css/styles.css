@@ -220,7 +220,7 @@ section.block h2 { font-size: 1.6rem; font-weight: var(--heading-weight); margin
 .chart-card { background: var(--card-bg); border: var(--card-border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-bottom: 22px; }
 .chart-card h3 { font-size: 1.05rem; margin-bottom: 4px; }
 .chart-card .chart-hint { font-size: 0.82rem; color: var(--text-soft); margin-bottom: 12px; }
-.year-summary { font-size: 1.05rem; line-height: 1.6; max-width: 72ch; margin: 6px 0 10px; }
+.year-summary { font-size: 1.05rem; line-height: 1.6; margin: 6px 0 8px; }
 .fx-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px 24px; margin: 6px 0 18px; }
 .fx-split .kpi-value { font-size: 1.35rem; }
 .chart-wrap { position: relative; height: 340px; }
