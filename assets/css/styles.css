@@ -203,9 +203,9 @@ a:hover { text-decoration: underline; }
 /* ---------- KPIs ---------- */
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 28px 0; }
 .kpi { background: var(--card-bg); border: var(--card-border); border-radius: var(--radius); padding: var(--kpi-pad); box-shadow: var(--shadow); }
-.kpi .kpi-label { font-size: 0.8rem; text-transform: var(--label-transform); letter-spacing: var(--label-spacing); color: var(--text-soft); font-weight: 700; }
-.kpi .kpi-value { font-size: 1.7rem; font-weight: var(--heading-weight); margin-top: 4px; letter-spacing: var(--heading-tracking); }
-.kpi .kpi-sub { font-size: 0.85rem; color: var(--text-soft); }
+.kpi .kpi-label, .fx-split .kpi-label { font-size: 0.8rem; text-transform: var(--label-transform); letter-spacing: var(--label-spacing); color: var(--text-soft); font-weight: 700; }
+.kpi .kpi-value, .fx-split .kpi-value { font-size: 1.7rem; font-weight: var(--heading-weight); margin-top: 4px; letter-spacing: var(--heading-tracking); }
+.kpi .kpi-sub, .fx-split .kpi-sub { font-size: 0.85rem; color: var(--text-soft); }
 .kpi-highlight { border-top: 4px solid var(--accent); }
 .muted-value { color: var(--text-soft); }
 .pos { color: var(--green); }
@@ -220,6 +220,8 @@ section.block h2 { font-size: 1.6rem; font-weight: var(--heading-weight); margin
 .chart-card { background: var(--card-bg); border: var(--card-border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-bottom: 22px; }
 .chart-card h3 { font-size: 1.05rem; margin-bottom: 4px; }
 .chart-card .chart-hint { font-size: 0.82rem; color: var(--text-soft); margin-bottom: 12px; }
+.fx-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px 24px; margin: 6px 0 18px; }
+.fx-split .kpi-value { font-size: 1.35rem; }
 .chart-wrap { position: relative; height: 340px; }
 .chart-wrap.small { height: 260px; }
 

@@ -24,7 +24,7 @@ if (!defined('META_PIXEL_ID'))       define('META_PIXEL_ID', '');
 if (!defined('RECAPTCHA_SITE_KEY'))  define('RECAPTCHA_SITE_KEY', '');
 if (!defined('RECAPTCHA_SECRET'))    define('RECAPTCHA_SECRET', '');
 
-const JDS_VERSION  = '2.0.9';
+const JDS_VERSION  = '2.1.0';
 const SATS_PER_BTC = 100000000;
 
 /** Naranja Bitcoin: el acento del sitio maestro. Sirve de referencia, no de default. */
@@ -415,7 +415,7 @@ function get_purchases(int $yearId): array {
     $st->execute([$yearId]);
     $rows = $st->fetchAll();
 
-    $accSats = 0; $accMoney = 0.0;
+    $accSats = 0; $accMoney = 0.0; $accUsd = 0.0;
     foreach ($rows as &$r) {
         $tc = (float)$r['tipo_cambio_usd'] ?: 1.0;
         $r['comision_monto'] = (float)$r['monto_local'] * (float)$r['comision_pct'];
@@ -428,8 +428,31 @@ function get_purchases(int $yearId): array {
         $r['inversion_acum'] = $accMoney;
         $r['valor_acum']     = $accSats / SATS_PER_BTC * (float)$r['precio_local_btc'];
         $r['valor_acum_usd'] = $r['valor_acum'] / $tc;
+        $accUsd += $r['monto_usd'];
+        $r['inversion_acum_usd'] = $accUsd;
+        $fx = fx_breakdown($accMoney, $accUsd, $r['valor_acum_usd'], $tc);
+        $r['efecto_btc_acum'] = $fx['btc'];
+        $r['efecto_fx_acum']  = $fx['fx'];
     }
     return $rows;
+}
+
+/**
+ * Separa la ganancia en moneda local en lo que puso Bitcoin y lo que puso la moneda.
+ *
+ *   efecto Bitcoin       = (valor USD − costo USD) × TC de hoy
+ *   efecto tipo de cambio = costo USD × (TC de hoy − TC promedio ponderado)
+ *
+ * El TC promedio ponderado es costo local / costo USD: lo que de verdad costó
+ * cada dólar invertido. Las dos partes suman exacto la ganancia local, sin
+ * residuo. Las comisiones quedan dentro del efecto Bitcoin: compraron menos sats.
+ */
+function fx_breakdown(float $costLocal, float $costUsd, float $valueUsd, float $fxNow): array {
+    return [
+        'btc'      => ($valueUsd - $costUsd) * $fxNow,
+        'fx'       => $costUsd * $fxNow - $costLocal,
+        'fx_avg'   => $costUsd > 0 ? $costLocal / $costUsd : 0.0,
+    ];
 }
 
 /**
@@ -470,12 +493,14 @@ function year_summary(array $purchases, array $prices): array {
     $sats = $n ? end($purchases)['sats_acum'] : 0;
     $inv  = $n ? end($purchases)['inversion_acum'] : 0.0;
     $val  = $sats / SATS_PER_BTC * $prices['btc_local'];
+    $invUsd = array_sum(array_column($purchases, 'monto_usd'));
+    $fx   = fx_breakdown($inv, $invUsd, $sats / SATS_PER_BTC * $prices['btc_usd'], (float)$prices['usd_local']);
     return [
         'compras'       => $n,
         'sats'          => $sats,
         'btc'           => $sats / SATS_PER_BTC,
         'invertido'     => $inv,
-        'invertido_usd' => array_sum(array_column($purchases, 'monto_usd')),
+        'invertido_usd' => $invUsd,
         'comisiones'    => array_sum(array_column($purchases, 'comision_monto')),
         'valor'         => $val,
         'valor_usd'     => $sats / SATS_PER_BTC * $prices['btc_usd'],
@@ -484,6 +509,10 @@ function year_summary(array $purchases, array $prices): array {
         'sats_promedio' => $n ? $sats / $n : 0,
         'costo_por_sat' => $sats > 0 ? $inv / $sats : 0,
         'streak'        => purchase_streak($purchases),
+        'efecto_btc'    => $fx['btc'],
+        'efecto_fx'     => $fx['fx'],
+        'tc_promedio'   => $fx['fx_avg'],
+        'tc_hoy'        => (float)$prices['usd_local'],
     ];
 }
 

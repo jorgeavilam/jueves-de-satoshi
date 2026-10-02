@@ -86,6 +86,33 @@ page_head(t('dashboard_title', (string)$selYear));
       <div class="chart-hint"><?= t('chart_inv_value_hint') ?></div>
       <div class="chart-wrap"><canvas id="chartInvValor"></canvas></div>
     </div>
+
+    <?php if (!is_usd_site()):
+        $signed = function (float $v): string { return ($v >= 0 ? '+' : '−') . money(abs($v)); };
+        $ofInv  = function (float $v) use ($ys): string { return $ys['invertido'] > 0 ? t('split_of_inv', fmt_pct($v / $ys['invertido'])) : ''; }; ?>
+    <div class="chart-card">
+      <h3>🧭 <?= e(t('chart_split')) ?></h3>
+      <div class="chart-hint"><?= e(t('chart_split_hint', $cur)) ?></div>
+      <div class="fx-split">
+        <div>
+          <div class="kpi-label"><?= e(t('split_btc')) ?></div>
+          <div class="kpi-value <?= $ys['efecto_btc'] >= 0 ? 'pos' : 'neg' ?>"><?= $signed($ys['efecto_btc']) ?></div>
+          <div class="kpi-sub"><?= e($ofInv($ys['efecto_btc'])) ?></div>
+        </div>
+        <div>
+          <div class="kpi-label"><?= e(t('split_fx')) ?></div>
+          <div class="kpi-value <?= $ys['efecto_fx'] >= 0 ? 'pos' : 'neg' ?>"><?= $signed($ys['efecto_fx']) ?></div>
+          <div class="kpi-sub"><?= e($ofInv($ys['efecto_fx'])) ?></div>
+        </div>
+        <div>
+          <div class="kpi-label"><?= e(t('split_fx_rate')) ?></div>
+          <div class="kpi-value"><?= fmt_num($ys['tc_promedio'], 2) ?> → <?= fmt_num($ys['tc_hoy'], 2) ?></div>
+          <div class="kpi-sub"><?= e(t('split_fx_rate_sub', $cur)) ?></div>
+        </div>
+      </div>
+      <div class="chart-wrap small"><canvas id="chartEfectos"></canvas></div>
+    </div>
+    <?php endif; ?>
     <?php else: ?>
     <div class="kpi-grid">
       <div class="kpi kpi-highlight">
@@ -106,6 +133,14 @@ page_head(t('dashboard_title', (string)$selYear));
       <div class="chart-hint"><?= e(t('chart_price_hint', $cur, $dayName)) ?></div>
       <div class="chart-wrap small"><canvas id="chartPrecio"></canvas></div>
     </div>
+
+    <?php if (!is_usd_site()): ?>
+    <div class="chart-card">
+      <h3>💱 <?= e(t('chart_fx')) ?></h3>
+      <div class="chart-hint"><?= e(t('chart_fx_hint', $cur, $dayName)) ?></div>
+      <div class="chart-wrap small"><canvas id="chartTC"></canvas></div>
+    </div>
+    <?php endif; ?>
 
     <?php if (show_amounts()): ?>
     <div class="chart-card">
@@ -184,13 +219,20 @@ window.JDS = <?= json_encode([
     'inversion' => show_amounts() ? array_map(fn($p) => round($p['inversion_acum'], 2), $purchases) : [],
     'valor'     => show_amounts() ? array_map(fn($p) => round($p['valor_acum'], 2), $purchases) : [],
     'precioBtc' => array_map(fn($p) => (float)$p['precio_local_btc'], $purchases),
+    'tipoCambio'=> is_usd_site() ? [] : array_map(fn($p) => (float)$p['tipo_cambio_usd'], $purchases),
     'sats'      => show_amounts() ? array_map(fn($p) => (int)$p['sats'], $purchases) : [],
     'satsAcum'  => show_amounts() ? array_map(fn($p) => (int)$p['sats_acum'], $purchases) : [],
+    'efectoBtc' => show_amounts() && !is_usd_site() ? array_map(fn($p) => round($p['efecto_btc_acum'], 2), $purchases) : [],
+    'efectoFx'  => show_amounts() && !is_usd_site() ? array_map(fn($p) => round($p['efecto_fx_acum'], 2), $purchases) : [],
     'urls'      => show_amounts() ? array_map(fn($p) => $p['x_post_url'], $purchases) : [],
     'i18n'      => [
         'inv'      => t('inv_label', $cur),
         'val'      => t('val_label', $cur),
         'price'    => t('price_label', $cur),
+        'fx'       => t('fx_label', $cur),
+        'splitBtc' => t('split_btc'),
+        'splitFx'  => t('split_fx'),
+        'splitTot' => t('split_total'),
         'sats'     => t('sats_label'),
         'satsAcum' => t('sats_acum_label'),
         'clickPost'=> t('th_post'),

@@ -117,6 +117,62 @@
       }));
     }
 
+    // 2b) Tipo de cambio registrado en cada compra (los sitios en USD no la tienen)
+    var el5 = document.getElementById('chartTC');
+    if (el5 && D.tipoCambio && D.tipoCambio.length) {
+      var ctx5 = el5.getContext('2d');
+      // 18.42 MXN se lee con 2 decimales; 0.9213 EUR necesita 4
+      var fx = function (v) { return num(v, Math.abs(v) >= 10 ? 2 : 4); };
+      var opts5 = baseOpts(t, fx);
+      opts5.plugins.legend.display = false;
+      opts5.plugins.tooltip.callbacks.label = function (ctx) {
+        return ' 1 USD = ' + fx(ctx.parsed.y) + ' ' + D.currency;
+      };
+      charts.push(new Chart(ctx5, {
+        type: 'line',
+        data: {
+          labels: D.labels,
+          datasets: [{
+            label: D.i18n.fx, data: D.tipoCambio,
+            borderColor: t.text, backgroundColor: grad(ctx5, t.text, 260),
+            borderWidth: 2.5, fill: true, pointRadius: 3, pointHoverRadius: 6, tension: 0.3
+          }]
+        },
+        options: opts5
+      }));
+    }
+
+    // 1b) De dónde viene el rendimiento: Bitcoin en dólares vs. el dólar contra la moneda local
+    var el6 = document.getElementById('chartEfectos');
+    if (el6 && D.efectoBtc && D.efectoBtc.length) {
+      var signed = function (v) { return v === 0 ? money(0) : (v < 0 ? '−' : '+') + money(Math.abs(v)); };
+      charts.push(new Chart(el6.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: D.labels,
+          datasets: [
+            {
+              label: D.i18n.splitBtc, data: D.efectoBtc,
+              borderColor: t.accent, backgroundColor: 'transparent',
+              borderWidth: 3, pointRadius: 2, pointHoverRadius: 6, tension: 0.25
+            },
+            {
+              label: D.i18n.splitFx, data: D.efectoFx,
+              borderColor: t.text, backgroundColor: 'transparent',
+              borderWidth: 2.5, pointRadius: 2, pointHoverRadius: 6, tension: 0.25
+            },
+            {
+              label: D.i18n.splitTot,
+              data: D.efectoBtc.map(function (v, i) { return v + D.efectoFx[i]; }),
+              borderColor: t.soft, backgroundColor: 'transparent',
+              borderWidth: 2, borderDash: [6, 4], pointRadius: 0, tension: 0.25
+            }
+          ]
+        },
+        options: baseOpts(t, signed)
+      }));
+    }
+
     // 3) Sats por compra: cuando el precio baja, el mismo monto compra más
     var el3 = document.getElementById('chartSats');
     if (el3 && D.sats.length) {

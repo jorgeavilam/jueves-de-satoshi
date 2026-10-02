@@ -89,6 +89,21 @@ $ok('el riel se recorta a ' . COASTER_MAX_PTS . ' compras',
     $largo['count'] === COASTER_MAX_PTS && $largo['total'] === 300,
     sprintf('dibuja %d de %d', $largo['count'], $largo['total']));
 
+/* ---------- 4b. Efecto Bitcoin + efecto tipo de cambio = ganancia total ---------- */
+echo "\nRendimiento separado\n";
+// [costo local, costo USD, valor USD, TC de hoy]: peso débil, peso fuerte, BTC abajo, sin TC
+foreach ([
+    'peso se debilita' => [28000, 1619.0, 1919.0, 17.69],
+    'peso se fortalece' => [28000, 1550.0, 1700.0, 16.20],
+    'BTC en pérdida'    => [10000, 580.0, 450.0, 18.10],
+    'sitio sin compras' => [0, 0.0, 0.0, 17.5],
+] as $caso => [$cl, $cu, $vu, $fx]) {
+    $b = fx_breakdown($cl, $cu, $vu, $fx);
+    $total = $vu * $fx - $cl;
+    $ok("$caso: las partes suman la ganancia", abs($b['btc'] + $b['fx'] - $total) < 0.0001,
+        sprintf('btc %.2f + tc %.2f = %.2f', $b['btc'], $b['fx'], $total));
+}
+
 /* ---------- 5. Cada clase del HTML tiene regla en el CSS ---------- */
 echo "\nEstilos\n";
 $css = (string)file_get_contents(__DIR__ . '/../assets/css/styles.css');
