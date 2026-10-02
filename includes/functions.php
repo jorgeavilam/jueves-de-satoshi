@@ -24,7 +24,7 @@ if (!defined('META_PIXEL_ID'))       define('META_PIXEL_ID', '');
 if (!defined('RECAPTCHA_SITE_KEY'))  define('RECAPTCHA_SITE_KEY', '');
 if (!defined('RECAPTCHA_SECRET'))    define('RECAPTCHA_SECRET', '');
 
-const JDS_VERSION  = '2.5.0';
+const JDS_VERSION  = '2.5.1';
 const SATS_PER_BTC = 100000000;
 
 /** Naranja Bitcoin: el acento del sitio maestro. Sirve de referencia, no de default. */

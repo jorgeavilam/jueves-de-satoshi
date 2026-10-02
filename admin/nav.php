@@ -42,6 +42,19 @@ function admin_chrome(string $current): void {
       </div>
     </nav>
     <?php
+    // Archivos nuevos con la base atrasada: el sitio público sigue en pie (el
+    // código tolera el esquema anterior), pero el dueño debe saberlo aquí.
+    require_once __DIR__ . '/../includes/migrate.php';
+    $pend = 0;
+    try { $pend = count(migrations_pending()); } catch (Throwable $ex) { $pend = 0; }
+    if ($pend > 0): ?>
+    <div class="container" style="padding-top:18px">
+      <div class="alert alert-warn">
+        🛠️ <?= e(t('upgrade_pending', $pend)) ?>
+        <a href="<?= SITE_URL ?>/upgrade.php" style="margin-left:8px"><?= e(t('upgrade_go')) ?> →</a>
+      </div>
+    </div>
+    <?php endif;
     // El aviso solo aparece mientras el sitio se siga pareciendo al original.
     $u = uniqueness();
     if (!is_hub() && $u['pct'] < 70 && $current !== 'marca' && $current !== 'identidad'):

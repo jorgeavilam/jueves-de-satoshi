@@ -402,6 +402,8 @@ return [
     'uniq_sub'     => 'Estos son los puntos que hacen que tu instalación se distinga de las demás.',
     'uniq_banner'  => 'Tu sitio va al %d%% de personalización. Ponle tu color, tu logo y tus palabras para que se sienta tuyo.',
     'uniq_go'      => 'Completar',
+    'upgrade_pending' => 'Subiste una versión nueva y la base de datos tiene %d cambio(s) pendiente(s). Tu sitio sigue funcionando, pero las funciones nuevas no están completas hasta que los apliques.',
+    'upgrade_go'      => 'Aplicarlos ahora',
     'uniq_done'    => 'Listo',
     'uniq_pending' => 'Pendiente',
     'uniq_item_name'    => 'Nombre propio del sitio',

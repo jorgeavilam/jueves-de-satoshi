@@ -402,6 +402,8 @@ return [
     'uniq_sub'     => 'These are the things that set your installation apart from the rest.',
     'uniq_banner'  => 'Your site is %d%% customized. Add your color, your logo and your words to make it feel yours.',
     'uniq_go'      => 'Complete',
+    'upgrade_pending' => 'You uploaded a new version and the database has %d pending change(s). Your site keeps working, but the new features are not complete until you apply them.',
+    'upgrade_go'      => 'Apply them now',
     'uniq_done'    => 'Done',
     'uniq_pending' => 'Pending',
     'uniq_item_name'    => 'Your own site name',

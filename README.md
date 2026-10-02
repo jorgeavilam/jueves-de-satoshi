@@ -40,7 +40,10 @@ En cPanel la versión de PHP se cambia en **MultiPHP Manager**.
 
 ## Instalación
 
-1. **Sube los archivos** de esta carpeta a la raíz de tu dominio o subdominio.
+1. **Descarga [`jueves-de-satoshi.zip`](https://github.com/jorgeavilam/jueves-de-satoshi/releases/latest/download/jueves-de-satoshi.zip)**
+   de la última versión, súbelo a la raíz de tu dominio o subdominio y
+   descomprímelo ahí (cPanel → Administrador de archivos → Extraer). El zip no
+   trae carpeta raíz: los archivos quedan directo en su lugar.
 2. **Crea la base de datos** y su usuario desde tu panel de hosting (cPanel →
    MySQL Databases). No importes nada a mano.
 3. **Abre `install.php`** en tu navegador y sigue los siete pasos: base de datos,
@@ -51,6 +54,27 @@ En cPanel la versión de PHP se cambia en **MultiPHP Manager**.
 El instalador se niega a avanzar sin tu nombre y el nombre de tu sitio. Si algún
 día los borras, el sitio público deja de publicar y muestra un aviso: el default
 de una instalación a medias es el silencio, no los datos de otra persona.
+
+## Actualización
+
+Cada versión publica dos zips en su [página de versiones](https://github.com/jorgeavilam/jueves-de-satoshi/releases):
+
+| Archivo | Para qué |
+|---|---|
+| `jueves-de-satoshi.zip` | Instalación nueva |
+| `jueves-de-satoshi-actualizacion.zip` | Actualizar un sitio que ya existe |
+
+1. **Respalda la base de datos** desde tu panel de hosting si la versión trae
+   migraciones (sus notas lo dicen).
+2. Sube **`jueves-de-satoshi-actualizacion.zip`** a la raíz de tu sitio y
+   descomprímelo encima, sobrescribiendo. No trae `config.php`, ni tus
+   imágenes, ni `install.php`, ni el `.htaccess` de la raíz: nada tuyo se pisa.
+   Si una versión cambia el `.htaccess`, sus notas dicen qué líneas agregar.
+3. Si la versión trae migraciones, el panel te avisa: abre **`upgrade.php`**,
+   entra con tu usuario y aplícalas. Mientras tanto el sitio sigue en pie.
+4. Borra el zip del servidor.
+
+El pie del sitio muestra la versión instalada.
 
 ## Actualización desde la v1
 
@@ -81,6 +105,7 @@ de una instalación a medias es el silencio, no los datos de otra persona.
 ├── registro.php         Punto de registro de nodos (idem)
 ├── install.php          Instalador web — bórralo al terminar
 ├── upgrade.php          Actualizador de base de datos
+├── scripts/             empaquetar.php — arma los .zip de cada versión (no viaja en ellos)
 ├── admin/               Panel: compras, años, identidad, marca, contenido,
 │                        herramientas, privacidad, red, contraseña
 ├── includes/            functions, layout, i18n, currencies, brandkit,
