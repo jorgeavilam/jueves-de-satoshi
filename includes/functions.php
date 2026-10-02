@@ -24,7 +24,7 @@ if (!defined('META_PIXEL_ID'))       define('META_PIXEL_ID', '');
 if (!defined('RECAPTCHA_SITE_KEY'))  define('RECAPTCHA_SITE_KEY', '');
 if (!defined('RECAPTCHA_SECRET'))    define('RECAPTCHA_SECRET', '');
 
-const JDS_VERSION  = '2.4.1';
+const JDS_VERSION  = '2.5.0';
 const SATS_PER_BTC = 100000000;
 
 /** Naranja Bitcoin: el acento del sitio maestro. Sirve de referencia, no de default. */
@@ -143,13 +143,71 @@ function content_is_custom(string $key): bool {
     return $row && (int)$row['is_default'] === 0 && trim((string)$row['cvalue']) !== '';
 }
 
+/** Traducciones de los bloques: [idioma][llave] => texto. */
+function content_tr_all(bool $reload = false): array {
+    static $cache = null;
+    if ($cache === null || $reload) {
+        $cache = [];
+        try {
+            foreach (db()->query('SELECT ckey, locale, cvalue FROM content_tr') as $r) {
+                $cache[$r['locale']][$r['ckey']] = $r['cvalue'];
+            }
+        } catch (Throwable $ex) {
+            $cache = []; // instalación sin la migración 003: no hay traducciones
+        }
+    }
+    return $cache;
+}
+
+function content_tr(string $key, string $locale): string {
+    return trim((string)(content_tr_all()[$locale][$key] ?? ''));
+}
+
+/** Guarda una traducción; vacía, la borra. */
+function set_content_tr(string $key, string $locale, string $value): void {
+    if (trim($value) === '') {
+        db()->prepare('DELETE FROM content_tr WHERE ckey = ? AND locale = ?')->execute([$key, $locale]);
+    } else {
+        db()->prepare('INSERT INTO content_tr (ckey, locale, cvalue) VALUES (?,?,?)
+                       ON DUPLICATE KEY UPDATE cvalue = VALUES(cvalue)')->execute([$key, $locale, $value]);
+    }
+    content_tr_all(true);
+}
+
 /**
- * Texto de un bloque. Si sigue en su versión estándar se devuelve la plantilla
- * del idioma activo (así el default siempre habla el idioma del sitio);
- * si el dueño lo personalizó, se devuelve su texto tal cual.
+ * De dónde sale un bloque en un idioma.
+ *
+ *  'tr'     la traducción que escribió el dueño
+ *  'custom' su texto en el idioma principal: si no lo ha traducido, es mejor su
+ *           mensaje en otro idioma que una plantilla genérica que no dijo él
+ *  'tpl'    la plantilla, que sí existe en todos los idiomas
+ */
+function content_source(bool $isCustom, string $translation, bool $isPrimary): string {
+    if (!$isPrimary && $translation !== '') return 'tr';
+    return $isCustom ? 'custom' : 'tpl';
+}
+
+/** Bloques personalizados que aún no tienen traducción a $locale. */
+function content_untranslated(string $locale): array {
+    if ($locale === site_locale()) return [];
+    return array_values(array_filter(content_keys(), fn($k) => content_is_custom($k) && content_tr($k, $locale) === ''));
+}
+
+/**
+ * Texto de un bloque en el idioma de la página. Ver content_source().
+ * Un texto que se queda en el idioma principal se marca con lang=, para que
+ * lectores de pantalla y buscadores sepan que esa parte no está traducida.
  */
 function content(string $key, ...$args): string {
-    if (content_is_custom($key)) return content_all()[$key]['cvalue'];
+    $cur = current_locale();
+    $src = content_source(content_is_custom($key), content_tr($key, $cur), $cur === site_locale());
+    if ($src === 'tr') return content_tr($key, $cur);
+    if ($src === 'custom') {
+        $text = content_all()[$key]['cvalue'];
+        if ($cur === site_locale()) return $text;
+        $tag = $key === 'ejercicio_body' ? 'div' : 'span'; // el único bloque con párrafos
+        return '<' . $tag . ' lang="' . e(site_locale()) . '">' . $text . '</' . $tag . '>';
+    }
     // Las plantillas se imprimen como HTML y los argumentos son datos del dueño
     // (el nombre del sitio, por ejemplo): se escapan antes de interpolarlos.
     $safe = array_map(fn($a) => is_string($a) ? e($a) : $a, $args);
@@ -182,6 +240,16 @@ function clean_html(string $html): string {
 /* ---------- Identidad y marca ---------- */
 
 function owner_name(): string  { return get_setting('owner_name', ''); }
+
+/** Bio en el idioma de la página; sin traducción, la del idioma principal. */
+function owner_bio(?string $locale = null): string {
+    $locale = $locale ?? current_locale();
+    if ($locale !== site_locale()) {
+        $tr = get_setting('owner_bio_' . $locale, '');
+        if ($tr !== '') return $tr;
+    }
+    return get_setting('owner_bio', '');
+}
 function site_name(): string   { return get_setting('site_name', ''); }
 function purchase_day(): int   { $d = (int)get_setting('purchase_day', '4'); return ($d >= 1 && $d <= 7) ? $d : 4; }
 function accent_color(): string {
@@ -312,15 +380,19 @@ function privacy_mode(): string {
 /**
  * ¿Quien mira es el dueño con sesión abierta?
  *
- * Solo se pregunta en modo bóveda: abrir sesión en cada visita pública costaría
- * una cookie y una escritura de disco por página, y no hace falta. Si no hay
- * cookie de sesión, ni se intenta.
+ * Si no hay cookie de sesión, ni se intenta: abrir sesión en cada visita
+ * pública costaría una cookie y una escritura de disco por página.
+ *
+ * La sesión solo se puede abrir antes de enviar la página. page_head() lo
+ * pregunta al empezar y el resultado queda guardado para el resto de la
+ * petición: la cintilla del hub, que se pinta ya con el HTML en camino, lo lee
+ * de ahí. Si aun así se pregunta tarde, se responde «no» en vez de intentarlo.
  */
 function viewer_is_owner(): bool {
     static $is = null;
     if ($is !== null) return $is;
     if (session_status() === PHP_SESSION_ACTIVE) return $is = !empty($_SESSION['jds_admin']);
-    if (empty($_COOKIE[session_name()])) return $is = false;
+    if (empty($_COOKIE[session_name()]) || headers_sent()) return $is = false;
     session_set_cookie_params([
         'httponly' => true,
         'samesite' => 'Lax',
@@ -434,8 +506,18 @@ function clean_urls(): bool {
     return !empty($_SERVER['JDS_CLEAN_URLS']) || !empty($_SERVER['REDIRECT_JDS_CLEAN_URLS']);
 }
 
-function year_url(int $year): string {
-    return clean_urls() ? SITE_URL . '/' . $year : SITE_URL . '/year.php?y=' . $year;
+function year_url(int $year, ?string $locale = null): string {
+    return l10n_url(clean_urls() ? SITE_URL . '/' . $year : SITE_URL . '/year.php?y=' . $year, $locale);
+}
+
+/** Enlace interno que conserva el idioma de la página: page_url('/contacto.php'). */
+function page_url(string $path = '/', ?string $locale = null): string {
+    return l10n_url(SITE_URL . $path, $locale);
+}
+
+/** La página «Monta el tuyo» del maestro, con o sin URL limpia. */
+function install_page_url(?string $locale = null): string {
+    return page_url(clean_urls() ? '/monta-el-tuyo' : '/instalar.php', $locale);
 }
 
 /* ---------- Datos ---------- */

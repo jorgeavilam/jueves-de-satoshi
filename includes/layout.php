@@ -45,12 +45,37 @@ function public_gate(): void {
  * Cada año tiene la suya (/2026 o year.php?y=2026): con una sola URL para
  * todos, Google podía tirar del índice todos menos uno.
  */
-function canonical_url(): string {
+function canonical_url(?string $locale = null): string {
     $rel = current_script();
-    if ($rel === '/index.php') return SITE_URL . '/';
-    if ($rel === '/year.php') return year_url((int)($_GET['y'] ?? date('Y')));
-    if ($rel === '/instalar.php' && clean_urls()) return SITE_URL . '/monta-el-tuyo';
-    return SITE_URL . $rel;
+    if ($rel === '/index.php') return page_url('/', $locale);
+    if ($rel === '/year.php') return year_url((int)($_GET['y'] ?? date('Y')), $locale);
+    if ($rel === '/instalar.php') return install_page_url($locale);
+    return page_url($rel, $locale);
+}
+
+/**
+ * hreflang: le dice a Google que cada idioma es la misma página traducida, no
+ * contenido duplicado. x-default es el idioma principal.
+ */
+function hreflang_links(): string {
+    $locs = site_locales();
+    if (count($locs) < 2) return '';
+    $out = '';
+    foreach ($locs as $l) $out .= '<link rel="alternate" hreflang="' . e($l) . '" href="' . e(canonical_url($l)) . "\">\n";
+    return $out . '<link rel="alternate" hreflang="x-default" href="' . e(canonical_url(site_locale())) . "\">\n";
+}
+
+/** Selector de idioma: un enlace por cada idioma que no es el de esta página. */
+function lang_switch(): string {
+    $locs = site_locales();
+    if (count($locs) < 2) return '';
+    $out = '';
+    foreach ($locs as $l) {
+        if ($l === current_locale()) continue;
+        $out .= '<a class="lang-switch" href="' . e(canonical_url($l)) . '" hreflang="' . e($l) . '" lang="' . e($l) . '"'
+              . ' title="' . e(JDS_LOCALE_NAMES[$l] ?? $l) . '">' . e(strtoupper($l)) . '</a>';
+    }
+    return $out;
 }
 
 /** Archivo que atiende la petición, relativo a la raíz de la app: «/year.php». */
@@ -81,7 +106,7 @@ function og_image_url(): string {
         $st = db()->prepare($sql);
         $st->execute($year ? [$year] : []);
         $ver = str_replace('-', '', (string)$st->fetchColumn()) . '-' . substr(md5(privacy_mode() . current_locale() . JDS_VERSION), 0, 6);
-        return SITE_URL . '/og.php?' . ($year ? 'y=' . $year . '&' : '') . 'v=' . $ver;
+        return l10n_url(SITE_URL . '/og.php?' . ($year ? 'y=' . $year . '&' : '') . 'v=' . $ver);
     }
     return og_static_image_url();
 }
@@ -97,6 +122,7 @@ function og_static_image_url(): string {
 }
 
 function page_head(string $title, string $description = '', bool $noindex = false, array $ld = []): void {
+    viewer_is_owner(); // abre la sesión, si hay cookie, antes de enviar una sola línea
     $site   = site_name() ?: HUB_PROJECT;
     $full   = $title === '' ? $site . ' — ' . t('home_title_suffix') : $title . ' | ' . $site;
     $desc   = $description ?: t('meta_description', $site);
@@ -127,7 +153,8 @@ function page_head(string $title, string $description = '', bool $noindex = fals
 <?php endif; endif; ?>
 <meta name="twitter:card" content="<?= strpos($ogImg, '/og.php') !== false ? 'summary_large_image' : 'summary' ?>">
 <link rel="canonical" href="<?= e($canon) ?>">
-<link rel="alternate" type="text/plain" title="llms.txt" href="<?= e(SITE_URL) ?>/llms.txt">
+<?= hreflang_links() ?>
+<link rel="alternate" type="text/plain" title="llms.txt" href="<?= e(page_url('/llms.txt')) ?>">
 <link rel="icon" href="<?= e(logo_url()) ?>">
 <?php if ($gf): ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -157,7 +184,7 @@ function page_head(string $title, string $description = '', bool $noindex = fals
 <?= tracking_body() ?>
 <header class="site-header">
   <div class="container header-inner">
-    <a href="<?= SITE_URL ?>/" class="brand">
+    <a href="<?= e(page_url('/')) ?>" class="brand">
       <?php if (get_setting('logo_mode', 'mono') === 'upload'): ?>
         <img src="<?= e(logo_url()) ?>" alt="<?= e(t('logo_alt', $site)) ?>" class="brand-logo">
       <?php else: ?>
@@ -166,21 +193,22 @@ function page_head(string $title, string $description = '', bool $noindex = fals
       <span class="brand-name"><?= brand_name_html() ?></span>
     </a>
     <nav class="main-nav" id="mainNav">
-      <a href="<?= SITE_URL ?>/"><?= e(t('nav_dashboard')) ?></a>
+      <a href="<?= e(page_url('/')) ?>"><?= e(t('nav_dashboard')) ?></a>
       <?php if (get_setting('ejercicio_mode', 'link') === 'own'): ?>
-        <a href="<?= SITE_URL ?>/acerca.php"><?= e(t('nav_ejercicio')) ?></a>
+        <a href="<?= e(page_url('/acerca.php')) ?>"><?= e(t('nav_ejercicio')) ?></a>
       <?php else: ?>
         <a href="<?= e(HUB_URL) ?>/acerca.php" target="_blank" rel="noopener">
           <?= e(t('nav_ejercicio')) ?> <span class="ext" aria-hidden="true">↗</span>
         </a>
       <?php endif; ?>
       <?php if (selected_tool('exchange') || selected_tool('wallet')): ?>
-        <a href="<?= SITE_URL ?>/herramientas.php"><?= e(t('nav_herramientas')) ?></a>
+        <a href="<?= e(page_url('/herramientas.php')) ?>"><?= e(t('nav_herramientas')) ?></a>
       <?php endif; ?>
-      <a href="<?= SITE_URL ?>/contacto.php"><?= e(t('nav_contacto')) ?></a>
+      <a href="<?= e(page_url('/contacto.php')) ?>"><?= e(t('nav_contacto')) ?></a>
       <?php if (is_hub()): // invitar a instalar es cosa del maestro: en un nodo parecería suya la app ?>
-        <a href="<?= e(SITE_URL . (clean_urls() ? '/monta-el-tuyo' : '/instalar.php')) ?>" class="nav-install"><?= e(t('llms_install')) ?></a>
+        <a href="<?= e(install_page_url()) ?>" class="nav-install"><?= e(t('llms_install')) ?></a>
       <?php endif; ?>
+      <?= lang_switch() ?>
       <button id="themeToggle" class="theme-toggle" title="<?= e(t('nav_theme')) ?>" aria-label="<?= e(t('nav_theme')) ?>">
         <span class="icon-light">🌙</span><span class="icon-dark">☀️</span>
       </button>
@@ -231,7 +259,7 @@ function json_ld(string $title = '', string $description = '', array $extra = []
         '@type'       => 'Person',
         '@id'         => $ownerId,
         'name'        => owner_name(),
-        'description' => get_setting('owner_bio', '') ?: null,
+        'description' => owner_bio() ?: null,
         'image'       => has_own_avatar() ? owner_avatar_url() : null,
         'sameAs'      => array_values(array_map(fn($s) => $s['url'], owner_socials())) ?: null,
     ]);
@@ -253,7 +281,7 @@ function json_ld(string $title = '', string $description = '', array $extra = []
 
 function page_foot(): void {
     $socials = owner_socials();
-    $bio = get_setting('owner_bio', '');
+    $bio = owner_bio();
     ?>
 </main>
 <footer class="site-footer">
@@ -281,9 +309,9 @@ function page_foot(): void {
           <?php // Los dos enlaces van en un solo ítem del flex, para que el
                 // separador no se convierta en un renglón aparte. ?>
           <span class="footer-row">
-            <a href="<?= SITE_URL ?>/red.php"><?= e(t('footer_network')) ?></a>
+            <a href="<?= e(page_url('/red.php')) ?>"><?= e(t('footer_network')) ?></a>
             <span aria-hidden="true">·</span>
-            <a href="<?= e(SITE_URL . (clean_urls() ? '/monta-el-tuyo' : '/instalar.php')) ?>"><?= e(t('llms_install')) ?></a>
+            <a href="<?= e(install_page_url()) ?>"><?= e(t('llms_install')) ?></a>
             <span aria-hidden="true">·</span>
             <a href="<?= e(HUB_REPO) ?>" target="_blank" rel="noopener"><?= e(t('footer_code')) ?></a>
           </span>

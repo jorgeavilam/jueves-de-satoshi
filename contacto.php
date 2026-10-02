@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $socials     = owner_socials();
 $publicEmail = get_setting('owner_email_public', '');
-$bio         = get_setting('owner_bio', '');
+$bio         = owner_bio();
 $captchaKey  = defined('RECAPTCHA_SITE_KEY') ? RECAPTCHA_SITE_KEY : '';
 
 page_head(t('contact_title'));

@@ -37,6 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'hero_chosen'  => '1',
             'logo_mode'    => ($_POST['logo_mode'] ?? 'mono') === 'upload' ? 'upload' : 'mono',
         ];
+        // Idiomas publicados: el principal siempre, más los que se marquen
+        $extra = array_values(array_filter((array)($_POST['site_locales'] ?? []), fn($l) => in_array($l, JDS_LOCALES, true) && $l !== $loc));
+        $pairs['site_locales'] = implode(',', array_merge([$loc], $extra));
         // El maestro no elige fondo: conserva el original, que ningún nodo puede tomar
         if (!is_hub()) {
             $pairs['bg_tone'] = isset(bg_catalog()[$_POST['bg_tone'] ?? '']) ? $_POST['bg_tone'] : bg_tone();
@@ -217,6 +220,17 @@ admin_chrome('marca');
           </div>
         </div>
         <p class="hint" style="margin:-6px 0 18px"><?= e(t('brand_currency_hint')) ?></p>
+
+        <div class="form-group">
+          <label><?= e(t('brand_locales')) ?></label>
+          <?php foreach (JDS_LOCALES as $l): if ($l === site_locale()) continue; ?>
+            <label class="choice" style="display:inline-block;margin:4px 8px 4px 0">
+              <input type="checkbox" name="site_locales[]" value="<?= e($l) ?>" <?= in_array($l, site_locales(), true) ? 'checked' : '' ?>>
+              <strong><?= e(JDS_LOCALE_NAMES[$l] ?? $l) ?></strong>
+            </label>
+          <?php endforeach; ?>
+          <p class="hint"><?= e(t('brand_locales_hint')) ?></p>
+        </div>
 
         <?php if (!currency_info()['cg']): ?>
         <div class="form-group">

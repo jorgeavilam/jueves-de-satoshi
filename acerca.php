@@ -27,6 +27,6 @@ page_head(t('nav_ejercicio'));
   </div>
   <?php endif; ?>
 
-  <p style="margin-top:30px"><a class="btn" href="<?= SITE_URL ?>/"><?= e(t('cta_dashboard')) ?></a></p>
+  <p style="margin-top:30px"><a class="btn" href="<?= e(page_url('/')) ?>"><?= e(t('cta_dashboard')) ?></a></p>
 </div>
 <?php page_foot(); ?>

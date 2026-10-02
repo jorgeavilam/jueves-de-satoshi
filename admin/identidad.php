@@ -16,6 +16,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'owner_name' => mb_substr($name, 0, 120),
             'owner_bio'  => mb_substr(trim($_POST['owner_bio'] ?? ''), 0, 200),
         ];
+        foreach (array_diff(site_locales(), [site_locale()]) as $l) {
+            $pairs['owner_bio_' . $l] = mb_substr(trim($_POST['owner_bio_' . $l] ?? ''), 0, 200);
+        }
         $mail = trim($_POST['owner_email_public'] ?? '');
         if ($mail !== '' && !filter_var($mail, FILTER_VALIDATE_EMAIL)) {
             $error = t('inst_err_email');
@@ -64,6 +67,13 @@ admin_chrome('identidad');
           <label><?= e(t('id_bio')) ?></label>
           <input type="text" name="owner_bio" maxlength="200" value="<?= e(get_setting('owner_bio', '')) ?>">
         </div>
+        <?php foreach (array_diff(site_locales(), [site_locale()]) as $l): ?>
+          <div class="form-group tr-field">
+            <label>↳ <?= e(t('content_tr_label', t('lang_name_' . $l))) ?></label>
+            <input type="text" name="owner_bio_<?= e($l) ?>" maxlength="200" lang="<?= e($l) ?>" value="<?= e(get_setting('owner_bio_' . $l, '')) ?>">
+            <p class="hint"><?= e(t('id_bio_tr_hint', t('lang_name_' . site_locale()))) ?></p>
+          </div>
+        <?php endforeach; ?>
         <div class="form-group">
           <label><?= e(t('id_email_public')) ?></label>
           <input type="email" name="owner_email_public" value="<?= e(get_setting('owner_email_public', '')) ?>">

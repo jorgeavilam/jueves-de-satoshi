@@ -4,7 +4,7 @@ public_gate();
 
 $exchange = selected_tool('exchange');
 $wallet   = selected_tool('wallet');
-if (!$exchange && !$wallet) { header('Location: ' . SITE_URL . '/'); exit; }
+if (!$exchange && !$wallet) { header('Location: ' . page_url('/')); exit; }
 
 page_head(t('nav_herramientas'));
 
@@ -47,7 +47,7 @@ function tool_card(array $tool, string $kicker): void {
       <div class="tool-kicker"><?= e(t('tools_site')) ?></div>
       <h3><?= e(site_name()) ?></h3>
       <p><?= e(t('tools_site_body')) ?></p>
-      <a class="btn btn-outline" href="<?= SITE_URL ?>/"><?= e(t('cta_dashboard')) ?></a>
+      <a class="btn btn-outline" href="<?= e(page_url('/')) ?>"><?= e(t('cta_dashboard')) ?></a>
     </div>
   </div>
   <?php endif; ?>

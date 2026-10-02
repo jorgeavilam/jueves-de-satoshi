@@ -29,28 +29,35 @@ foreach ($g['years'] as $y) {
 $out  = '# ' . $line(site_name()) . "\n\n";
 $out .= '> ' . $line(t('meta_description', site_name())) . "\n\n";
 if ($g['compras']) $out .= $line(site_summary_text($g, $amounts)) . "\n\n";
-$bio = get_setting('owner_bio', '');
+$bio = owner_bio();
 if ($bio !== '') $out .= $line(t('llms_about', owner_name(), $bio)) . "\n\n";
 $out .= $line(t('llms_data_note', fmt_fecha(date('Y-m-d')))) . "\n";
 
 if ($yearLines) $out .= "\n## " . t('llms_years') . "\n\n" . implode("\n", array_reverse($yearLines)) . "\n";
 
 $out .= "\n## " . t('llms_pages') . "\n\n";
-$out .= '- [' . t('nav_dashboard') . '](' . SITE_URL . '/): ' . t('llms_page_home') . "\n";
+$out .= '- [' . t('nav_dashboard') . '](' . page_url('/') . '): ' . t('llms_page_home') . "\n";
 if (get_setting('ejercicio_mode', 'link') === 'own') {
-    $out .= '- [' . t('nav_ejercicio') . '](' . SITE_URL . '/acerca.php): ' . t('llms_page_about') . "\n";
+    $out .= '- [' . t('nav_ejercicio') . '](' . page_url('/acerca.php') . '): ' . t('llms_page_about') . "\n";
 }
 if (selected_tool('exchange') || selected_tool('wallet')) {
-    $out .= '- [' . t('nav_herramientas') . '](' . SITE_URL . '/herramientas.php): ' . t('llms_page_tools') . "\n";
+    $out .= '- [' . t('nav_herramientas') . '](' . page_url('/herramientas.php') . '): ' . t('llms_page_tools') . "\n";
 }
-$out .= '- [' . t('nav_contacto') . '](' . SITE_URL . '/contacto.php): ' . t('llms_page_contact') . "\n";
+$out .= '- [' . t('nav_contacto') . '](' . page_url('/contacto.php') . '): ' . t('llms_page_contact') . "\n";
 
 if (is_hub()) {
-    $out .= '- [' . t('llms_network') . '](' . SITE_URL . '/red.php): ' . t('llms_page_network') . "\n";
-    $out .= '- [' . t('llms_install') . '](' . SITE_URL . (clean_urls() ? '/monta-el-tuyo' : '/instalar.php') . '): ' . t('llms_page_install') . "\n";
+    $out .= '- [' . t('llms_network') . '](' . page_url('/red.php') . '): ' . t('llms_page_network') . "\n";
+    $out .= '- [' . t('llms_install') . '](' . install_page_url() . '): ' . t('llms_page_install') . "\n";
     $out .= '- [GitHub](' . HUB_REPO . '): ' . t('llms_page_repo') . "\n";
 }
 
 if (!is_hub()) $out .= "\n" . $line(t('llms_based_on', HUB_PROJECT, HUB_URL)) . "\n";
+
+// Los demás idiomas en que se publica este mismo archivo
+$otros = array_filter(site_locales(), fn($l) => $l !== current_locale());
+if ($otros) {
+    $out .= "\n## " . t('llms_other_langs') . "\n\n";
+    foreach ($otros as $l) $out .= '- [' . (JDS_LOCALE_NAMES[$l] ?? $l) . '](' . page_url('/llms.txt', $l) . ")\n";
+}
 
 echo $out;

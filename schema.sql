@@ -58,6 +58,14 @@ CREATE TABLE IF NOT EXISTS content (
   PRIMARY KEY (ckey)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Traducciones de los textos editables. `content` guarda el idioma principal.
+CREATE TABLE IF NOT EXISTS content_tr (
+  ckey VARCHAR(60) NOT NULL,
+  locale VARCHAR(5) NOT NULL,
+  cvalue TEXT NOT NULL,
+  PRIMARY KEY (ckey, locale)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS schema_migrations (
   version VARCHAR(40) NOT NULL,
   applied_at DATETIME NOT NULL,

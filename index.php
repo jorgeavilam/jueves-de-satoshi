@@ -199,12 +199,12 @@ if (privacy_mode() === 'vault'): ?>
     <p class="section-sub narrow"><?= content('home_about') ?></p>
     <p>
       <?php if (get_setting('ejercicio_mode', 'link') === 'own'): ?>
-        <a class="btn" href="<?= SITE_URL ?>/acerca.php"><?= e(t('cta_know')) ?></a>
+        <a class="btn" href="<?= e(page_url('/acerca.php')) ?>"><?= e(t('cta_know')) ?></a>
       <?php else: ?>
         <a class="btn" href="<?= e(HUB_URL) ?>/acerca.php" target="_blank" rel="noopener"><?= e(t('cta_know')) ?> ↗</a>
       <?php endif; ?>
       <?php if (selected_tool('exchange') || selected_tool('wallet')): ?>
-        <a class="btn btn-outline" href="<?= SITE_URL ?>/herramientas.php"><?= e(t('cta_tools')) ?></a>
+        <a class="btn btn-outline" href="<?= e(page_url('/herramientas.php')) ?>"><?= e(t('cta_tools')) ?></a>
       <?php endif; ?>
     </p>
   </div>

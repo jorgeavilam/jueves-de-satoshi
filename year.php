@@ -3,7 +3,7 @@ require_once __DIR__ . '/includes/layout.php';
 public_gate();
 
 // En modo bóveda no hay dashboards públicos, pero el dueño sí entra al suyo.
-if (privacy_mode() === 'vault' && !viewer_is_owner()) { header('Location: ' . SITE_URL . '/'); exit; }
+if (privacy_mode() === 'vault' && !viewer_is_owner()) { header('Location: ' . page_url('/')); exit; }
 
 $selYear = (int)($_GET['y'] ?? date('Y'));
 
@@ -14,7 +14,7 @@ if (clean_urls() && isset($_GET['y']) && substr($reqPath, -9) === '/year.php') {
     header('Location: ' . year_url($selYear), true, 301); exit;
 }
 $yearRow = get_year($selYear);
-if (!$yearRow) { header('Location: ' . SITE_URL . '/'); exit; }
+if (!$yearRow) { header('Location: ' . page_url('/')); exit; }
 
 $prices    = live_prices();
 $purchases = get_purchases((int)$yearRow['id']);

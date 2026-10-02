@@ -18,6 +18,18 @@ function tpl_text(string $key): string {
     return t('tpl_' . $key, ...tpl_args($key));
 }
 
+/** La plantilla en otro idioma, para mostrarla de guía en el campo de traducción. */
+function tpl_text_in(string $key, string $locale): string {
+    $prev = $GLOBALS['jds_locale'] ?? null;
+    $GLOBALS['jds_locale'] = $locale;
+    $out = tpl_text($key);
+    if ($prev === null) unset($GLOBALS['jds_locale']); else $GLOBALS['jds_locale'] = $prev;
+    return $out;
+}
+
+// Idiomas además del principal: cada bloque tiene un campo de traducción por idioma
+$extraLocs = array_values(array_diff(site_locales(), [site_locale()]));
+
 $ok = ''; $error = '';
 
 // Volver un bloque a su versión estándar
@@ -44,6 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             set_content($key, '', true);
         } else {
             set_content($key, $val, false);
+        }
+        foreach ($extraLocs as $l) {
+            set_content_tr($key, $l, clean_html(trim((string)($_POST['tr_' . $l . '_' . $key] ?? ''))));
         }
     }
     $ok = t('saved_ok');
@@ -73,6 +88,12 @@ admin_chrome('contenido');
 
     <?php if ($ok): ?><div class="alert alert-ok">✅ <?= e($ok) ?></div><?php endif; ?>
     <?php if ($error): ?><div class="alert alert-err"><?= e($error) ?></div><?php endif; ?>
+    <?php foreach ($extraLocs as $l): $pend = count(content_untranslated($l)); ?>
+      <div class="alert <?= $pend ? 'alert-warn' : 'alert-ok' ?>">
+        <?= $pend ? '🌐 ' . e(t('content_tr_pending', $pend, t('lang_name_' . $l), t('lang_name_' . site_locale())))
+                  : '✅ ' . e(t('content_tr_done', t('lang_name_' . $l))) ?>
+      </div>
+    <?php endforeach; ?>
 
     <div class="form-card">
       <form method="post">
@@ -107,6 +128,20 @@ admin_chrome('contenido');
             </label>
             <textarea name="c_<?= e($key) ?>" rows="<?= (int)$b['rows'] ?>"><?= e($custom ? content_all()[$key]['cvalue'] : tpl_text($key)) ?></textarea>
           </div>
+          <?php foreach ($extraLocs as $l): $tr = content_tr($key, $l); ?>
+            <div class="form-group tr-field">
+              <label style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+                <span>↳ <?= e(t('content_tr_label', t('lang_name_' . $l))) ?></span>
+                <span style="font-weight:600;font-size:0.78rem;color:<?= $tr !== '' ? 'var(--green)' : 'var(--text-soft)' ?>">
+                  <?= $tr !== '' ? '✅ ' . e(t('content_tr_ok'))
+                     : ($custom ? '◻️ ' . e(t('content_tr_missing', t('lang_name_' . site_locale())))
+                                : '◻️ ' . e(t('content_tr_template'))) ?>
+                </span>
+              </label>
+              <textarea name="tr_<?= e($l) ?>_<?= e($key) ?>" rows="<?= (int)$b['rows'] ?>" lang="<?= e($l) ?>"
+                        placeholder="<?= e(strip_tags(tpl_text_in($key, $l))) ?>"><?= e($tr) ?></textarea>
+            </div>
+          <?php endforeach; ?>
         <?php endforeach; ?>
 
         <button class="btn" type="submit"><?= e(t('save')) ?></button>

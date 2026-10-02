@@ -81,6 +81,32 @@ foreach (JDS_LOCALES as $loc) {
 }
 unset($GLOBALS['jds_locale'], $GLOBALS['jds_lang_ver']);
 
+/* ---------- 3c. Idiomas: la URL de cada idioma y de dónde sale cada texto ---------- */
+echo "\nIdiomas del sitio\n";
+$base = site_locale();
+$otro = $base === 'es' ? 'en' : 'es';
+foreach ([
+    ['https://x.com/',            $otro, 'https://x.com/?lang=' . $otro],
+    ['https://x.com/2026',        $otro, 'https://x.com/2026?lang=' . $otro],
+    ['https://x.com/y.php?y=2026', $otro, 'https://x.com/y.php?y=2026&lang=' . $otro],
+    ['https://x.com/a?lang=' . $otro . '&b=1', $base, 'https://x.com/a?b=1'],
+    ['https://x.com/a?b=1&lang=' . $otro, $base, 'https://x.com/a?b=1'],
+    ['https://x.com/m#ayuda',     $otro, 'https://x.com/m?lang=' . $otro . '#ayuda'],
+    ['https://x.com/a?lang=' . $otro, $otro, 'https://x.com/a?lang=' . $otro],
+] as [$in, $loc, $want]) {
+    $got = l10n_url($in, $loc);
+    $ok("l10n_url($in, $loc)", $got === $want, $got);
+}
+foreach ([
+    'traducido, página en el otro idioma'     => [[true, 'Hello', false], 'tr'],
+    'sin traducir: el texto propio, no la plantilla' => [[true, '', false], 'custom'],
+    'sin texto propio: la plantilla'          => [[false, '', false], 'tpl'],
+    'idioma principal ignora la traducción'   => [[true, 'Hello', true], 'custom'],
+    'plantilla traducida a mano'              => [[false, 'Hello', false], 'tr'],
+] as $caso => [$args, $want]) {
+    $ok("texto: $caso", content_source(...$args) === $want);
+}
+
 /* ---------- 4. La montaña rusa no se sale del lienzo ---------- */
 echo "\nMontaña rusa\n";
 $alturaVehiculo = 50; // el pasajero con los brazos en alto, sobre el punto del riel

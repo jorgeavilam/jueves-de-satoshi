@@ -19,9 +19,9 @@ textos vivían escritos a mano dentro de las plantillas.
 |---|---|---|
 | Identidad | Constantes en `config.php` | Base de datos, editable en el panel |
 | Textos | Escritos en los `.php` | Bloques editables, con plantilla marcada como pendiente |
-| Marca | Una sola | Día, nombre, color, 4 estilos, 4 tipografías, logo, vehículo |
+| Marca | Una sola | Día, nombre, color, fondo, 4 estilos, 4 tipografías, logo, vehículo |
 | Moneda | MXN fijo | Una moneda por instalación, 10 opciones |
-| Idioma | Español fijo | Español e inglés |
+| Idioma | Español fijo | Español e inglés; un sitio puede publicar los dos, con selector, `?lang=` y `hreflang` |
 | Instalación | FTP + phpMyAdmin a mano | Instalador web de 7 pasos |
 | Actualización | — | `upgrade.php` con migraciones anotadas |
 | Privacidad | Todo público | Abierto, solo porcentajes, o bóveda |
