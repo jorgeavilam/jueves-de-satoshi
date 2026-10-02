@@ -354,7 +354,7 @@ return [
     'privacy_full'   => 'Open',
     'privacy_full_hint' => 'Everything is shown: amounts, sats, prices and the full history.',
     'privacy_percent' => 'Percentages only',
-    'privacy_percent_hint' => 'Shows consistency (for example "15 of 30 purchases, 50%") with no amounts, no sats and no prices.',
+    'privacy_percent_hint' => 'Shows your consistency (for example "15 of 30 purchases, 50%") and your streak, with no amounts or sats. The Bitcoin price and exchange rate charts do show: they are public market data and do not reveal how much you invest.',
     'privacy_vault'  => 'Vault',
     'privacy_vault_hint' => 'The home page is a safe: it says the practice continues, nothing more. You see the full detail by signing into the panel.',
     'net_title'        => 'Your place in the network',

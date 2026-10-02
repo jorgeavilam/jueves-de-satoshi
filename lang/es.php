@@ -354,7 +354,7 @@ return [
     'privacy_full'   => 'Abierto',
     'privacy_full_hint' => 'Se muestra todo: montos, sats, precios y el histórico completo.',
     'privacy_percent' => 'Solo porcentajes',
-    'privacy_percent_hint' => 'Se muestra el cumplimiento (por ejemplo «15 de 30 compras, 50%») sin montos, sin sats y sin precios.',
+    'privacy_percent_hint' => 'Se muestra tu constancia (por ejemplo «15 de 30 compras, 50%») y la racha, sin montos ni sats. Las gráficas del precio de Bitcoin y del tipo de cambio sí se ven: son datos públicos del mercado y no revelan cuánto inviertes.',
     'privacy_vault'  => 'Bóveda',
     'privacy_vault_hint' => 'La portada es una caja fuerte: dice que el ejercicio sigue y nada más. Tú ves el detalle completo entrando al panel.',
     'net_title'        => 'Tu lugar en la red',
