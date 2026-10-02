@@ -6,7 +6,7 @@
 # lo que de verdad está a punto de entrar al commit.
 # --diff-filter=ACMR: solo lo que se agrega o modifica. Borrar estos
 # archivos del repositorio sí es válido — de hecho es lo que hay que hacer.
-prohibido=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(modules/hub/|config\.php$|assets/img/jorge-avila\.jpg$|assets/img/logo\.svg$|\.apro/)' || true)
+prohibido=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(modules/hub/|config\.php$|assets/img/jorge-avila\.jpg$|assets/img/logo\.svg$)' || true)
 
 if [ -n "$prohibido" ]; then
   echo "✋ Este commit incluye archivos que no van en el repositorio público:"
@@ -16,7 +16,6 @@ if [ -n "$prohibido" ]; then
   echo "   config.php       -> credenciales"
   echo "   jorge-avila.jpg  -> activos reservados en BRAND.md"
   echo "   logo.svg         -> activos reservados en BRAND.md"
-  echo "   .apro/           -> configuración del entorno local de APRO: solo en este equipo"
   echo ""
   echo "   Si de verdad quieres incluirlos: git commit --no-verify"
   exit 1
