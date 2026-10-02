@@ -184,6 +184,7 @@ page_head(t('year_page_title', (string)$selYear), count($purchases) ? year_summa
       <div class="chart-wrap small"><canvas id="chartSatsAcum"></canvas></div>
     </div>
     <?php endif; ?>
+    <?= module_slot('year_end') ?>
   </div>
 </section>
 

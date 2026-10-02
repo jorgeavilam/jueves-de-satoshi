@@ -24,7 +24,7 @@ if (!defined('META_PIXEL_ID'))       define('META_PIXEL_ID', '');
 if (!defined('RECAPTCHA_SITE_KEY'))  define('RECAPTCHA_SITE_KEY', '');
 if (!defined('RECAPTCHA_SECRET'))    define('RECAPTCHA_SECRET', '');
 
-const JDS_VERSION  = '2.3.1';
+const JDS_VERSION  = '2.4.0';
 const SATS_PER_BTC = 100000000;
 
 /** Naranja Bitcoin: el acento del sitio maestro. Sirve de referencia, no de default. */
@@ -189,6 +189,12 @@ function accent_color(): string {
     return preg_match('/^#[0-9A-Fa-f]{6}$/', $c) ? $c : HUB_ACCENT;
 }
 function skin(): string { $s = get_setting('skin', 'classic'); return in_array($s, skins(), true) ? $s : 'classic'; }
+/** Fondo del sitio: '' en el maestro (usa el original); en un nodo, uno del catálogo. */
+function bg_tone(): string {
+    if (is_hub()) return '';
+    $b = get_setting('bg_tone', 'arena');
+    return isset(bg_catalog()[$b]) ? $b : 'arena';
+}
 function font_pair(): string { $f = get_setting('font_pair', 'system'); return in_array($f, font_pairs(), true) ? $f : 'system'; }
 function hero_vehicle(): string {
     $v = get_setting('hero_vehicle', 'coin');
@@ -387,6 +393,32 @@ function live_prices(): array {
                  'cur' => $code, 'ts' => time(), 'live' => false];
     }
     return $data;
+}
+
+/* ---------- Correo ---------- */
+
+/** reCAPTCHA v3. Si el sitio no tiene clave secreta, no hay nada que verificar. */
+function recaptcha_ok(string $token): bool {
+    if (!defined('RECAPTCHA_SECRET') || RECAPTCHA_SECRET === '') return true;
+    $resp = @file_get_contents('https://www.google.com/recaptcha/api/siteverify?secret='
+        . urlencode(RECAPTCHA_SECRET) . '&response=' . urlencode($token));
+    if (!$resp) return false;
+    $r = json_decode($resp, true);
+    return !empty($r['success']) && ($r['score'] ?? 0) >= 0.5;
+}
+
+/**
+ * Correo al dueño del sitio (CONTACT_EMAIL). Lo usan el formulario de contacto
+ * y los formularios de los módulos. El asunto se limpia de saltos de línea
+ * —inyección de cabeceras— y el Reply-To solo va si es un correo válido.
+ */
+function contact_send(string $subject, string $body, string $replyTo = ''): bool {
+    if (CONTACT_EMAIL === '') return false;
+    $subject = trim(str_replace(["\r", "\n"], ' ', $subject));
+    $headers = 'From: ' . mb_encode_mimeheader(site_name()) . ' <' . CONTACT_FROM . ">\r\n"
+             . (filter_var($replyTo, FILTER_VALIDATE_EMAIL) ? 'Reply-To: ' . $replyTo . "\r\n" : '')
+             . "Content-Type: text/plain; charset=UTF-8\r\n";
+    return @mail(CONTACT_EMAIL, mb_encode_mimeheader($subject), $body, $headers);
 }
 
 /* ---------- URLs ---------- */

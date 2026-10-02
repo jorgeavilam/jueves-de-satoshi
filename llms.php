@@ -45,7 +45,11 @@ if (selected_tool('exchange') || selected_tool('wallet')) {
 }
 $out .= '- [' . t('nav_contacto') . '](' . SITE_URL . '/contacto.php): ' . t('llms_page_contact') . "\n";
 
-if (is_hub()) $out .= '- [' . t('llms_network') . '](' . SITE_URL . '/red.php): ' . t('llms_page_network') . "\n";
+if (is_hub()) {
+    $out .= '- [' . t('llms_network') . '](' . SITE_URL . '/red.php): ' . t('llms_page_network') . "\n";
+    $out .= '- [' . t('llms_install') . '](' . SITE_URL . (clean_urls() ? '/monta-el-tuyo' : '/instalar.php') . '): ' . t('llms_page_install') . "\n";
+    $out .= '- [GitHub](' . HUB_REPO . '): ' . t('llms_page_repo') . "\n";
+}
 
 if (!is_hub()) $out .= "\n" . $line(t('llms_based_on', HUB_PROJECT, HUB_URL)) . "\n";
 

@@ -49,6 +49,16 @@
   --shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
 }
 
+/* ---------- Fondos de los nodos (data-bg) ----------
+ * Solo los nodos llevan data-bg: el maestro conserva el blanco con hero beige.
+ * Van con data-theme para que el modo oscuro no se pise con el claro. */
+[data-theme="light"][data-bg="arena"]  { --bg: #FBF8F1; --bg-soft: #F1E9DA; --border: #E4D9C5; }
+[data-theme="light"][data-bg="niebla"] { --bg: #F7F8FA; --bg-soft: #EAEEF3; --border: #DADFE6; }
+[data-theme="light"][data-bg="salvia"] { --bg: #F7F9F5; --bg-soft: #EAF0E6; --border: #D9E2D3; }
+[data-theme="dark"][data-bg="arena"]   { --bg: #16130E; --bg-soft: #1F1A13; --card: #251F17; --border: #3A3226; }
+[data-theme="dark"][data-bg="niebla"]  { --bg: #101317; --bg-soft: #171B21; --card: #1C2128; --border: #2E3540; }
+[data-theme="dark"][data-bg="salvia"]  { --bg: #111411; --bg-soft: #171C17; --card: #1D231D; --border: #2E372E; }
+
 /* ---------- Skin: Terminal ---------- */
 [data-skin="terminal"] {
   --radius: 0px;
@@ -412,3 +422,27 @@ table.compras tr:hover td { background: var(--bg-soft); }
   .chart-wrap { height: 280px; }
   .profile-card { justify-content: center; text-align: center; }
 }
+
+/* ---------- Huecos que llenan los módulos (module_slot) ---------- */
+.promo-banner { background: var(--text); color: var(--bg); font-size: 0.92rem; }
+.promo-banner .container { display: flex; align-items: center; justify-content: center; gap: 14px; padding-top: 9px; padding-bottom: 9px; flex-wrap: wrap; text-align: center; }
+.promo-banner a.promo-cta { color: var(--accent); font-weight: 700; text-decoration: none; white-space: nowrap; }
+.promo-banner a.promo-cta:hover { text-decoration: underline; }
+.main-nav a.nav-install { color: var(--accent); font-weight: 700; }
+.promo-close { background: none; border: 0; color: inherit; opacity: 0.6; font-size: 1.2rem; line-height: 1; cursor: pointer; padding: 0 4px; }
+.promo-close:hover { opacity: 1; }
+.promo-card { text-align: left; display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; background: var(--bg-soft); border: 1px dashed var(--accent); border-radius: var(--radius); padding: 20px 22px; margin: 22px 0; }
+.promo-card p { margin: 0; max-width: 60ch; }
+.promo-card strong { display: block; font-size: 1.05rem; margin-bottom: 2px; }
+.bg-swatch { display: inline-block; width: 46px; height: 28px; border-radius: 6px; border: 1px solid var(--border); vertical-align: middle; margin-left: 10px; }
+
+/* ---------- «Monta el tuyo» (instalar.php: la página existe solo en el maestro) ---------- */
+.inst-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 22px 0 10px; }
+.inst-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 18px 0 34px; }
+.inst-grid .chart-card { margin: 0; }
+.inst-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px 40px; margin-bottom: 34px; }
+.inst-list { margin: 12px 0 0 1.2em; display: grid; gap: 8px; }
+.inst-faq { display: grid; gap: 10px; margin-top: 14px; }
+.inst-faq details { background: var(--card-bg); border: var(--card-border); border-radius: var(--radius-sm); padding: 14px 18px; }
+.inst-faq summary { font-weight: 700; cursor: pointer; }
+.inst-faq p { margin-top: 8px; color: var(--text-soft); }

@@ -88,6 +88,28 @@ function vehicle_catalog(): array {
 function coaster_vehicles(): array { return array_keys(vehicle_catalog()); }
 
 /** Nombre traducido de una entrada de catálogo. */
+/**
+ * Fondos de los nodos.
+ *
+ * Ninguno es el del maestro (blanco con hero beige): emparentados con él, pero
+ * distintos a primera vista. El maestro no elige fondo; un nodo no puede elegir
+ * el suyo. Los valores viven en styles.css bajo [data-bg]; aquí solo las
+ * muestras del panel.
+ */
+function bg_catalog(): array {
+    return [
+        'arena'  => ['name' => ['es' => 'Arena',  'en' => 'Sand'],
+                     'desc' => ['es' => 'Crema cálida. La más cercana al original.', 'en' => 'Warm cream. The closest to the original.'],
+                     'swatch' => ['#FBF8F1', '#F1E9DA']],
+        'niebla' => ['name' => ['es' => 'Niebla', 'en' => 'Mist'],
+                     'desc' => ['es' => 'Gris frío. Hace resaltar los acentos cálidos.', 'en' => 'Cool grey. Makes warm accents stand out.'],
+                     'swatch' => ['#F7F8FA', '#EAEEF3']],
+        'salvia' => ['name' => ['es' => 'Salvia', 'en' => 'Sage'],
+                     'desc' => ['es' => 'Verde muy suave. Tranquila y natural.', 'en' => 'Very soft green. Calm and natural.'],
+                     'swatch' => ['#F7F9F5', '#EAF0E6']],
+    ];
+}
+
 function kit_name(array $catalog, string $key): string {
     $loc = current_locale();
     return $catalog[$key]['name'][$loc] ?? ($catalog[$key]['name']['es'] ?? $key);

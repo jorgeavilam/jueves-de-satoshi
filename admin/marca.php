@@ -37,6 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'hero_chosen'  => '1',
             'logo_mode'    => ($_POST['logo_mode'] ?? 'mono') === 'upload' ? 'upload' : 'mono',
         ];
+        // El maestro no elige fondo: conserva el original, que ningún nodo puede tomar
+        if (!is_hub()) {
+            $pairs['bg_tone'] = isset(bg_catalog()[$_POST['bg_tone'] ?? '']) ? $_POST['bg_tone'] : bg_tone();
+        }
         // Tipo de cambio de respaldo, para monedas que CoinGecko no cotiza
         $fb = (float)($_POST['fallback_usd_local'] ?? 0);
         if ($fb > 0) $pairs['fallback_usd_local'] = (string)$fb;
@@ -121,6 +125,23 @@ admin_chrome('marca');
             <span class="hint" style="margin:0"><?= e(t('brand_accent_hint')) ?></span>
           </div>
         </div>
+
+        <h3 style="margin:24px 0 6px;font-size:1.05rem"><?= e(t('brand_bg')) ?></h3>
+        <?php if (is_hub()): ?>
+          <p class="hint" style="margin-bottom:20px"><?= e(t('brand_bg_hub')) ?></p>
+        <?php else: ?>
+        <p class="hint" style="margin-bottom:10px"><?= e(t('brand_bg_hint')) ?></p>
+        <div class="choice-grid">
+          <?php foreach (bg_catalog() as $k => $m): ?>
+            <label class="choice">
+              <input type="radio" name="bg_tone" value="<?= e($k) ?>" <?= bg_tone() === $k ? 'checked' : '' ?>>
+              <strong><?= e(kit_name(bg_catalog(), $k)) ?></strong>
+              <span class="bg-swatch" style="background:linear-gradient(90deg, <?= e($m['swatch'][0]) ?> 50%, <?= e($m['swatch'][1]) ?> 50%)" aria-hidden="true"></span>
+              <p class="hint"><?= e(kit_desc(bg_catalog(), $k)) ?></p>
+            </label>
+          <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
 
         <h3 style="margin:24px 0 10px;font-size:1.05rem"><?= e(t('brand_skin')) ?></h3>
         <div class="choice-list">

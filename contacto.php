@@ -16,27 +16,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($nombre === '' || $mensaje === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = t('contact_err_fields');
     } else {
-        $captchaOk = true;
-        if (defined('RECAPTCHA_SECRET') && RECAPTCHA_SECRET !== '') {
-            $captchaOk = false;
-            $resp = @file_get_contents('https://www.google.com/recaptcha/api/siteverify?secret='
-                . urlencode(RECAPTCHA_SECRET) . '&response=' . urlencode($_POST['g-recaptcha-response'] ?? ''));
-            if ($resp) {
-                $r = json_decode($resp, true);
-                $captchaOk = !empty($r['success']) && ($r['score'] ?? 0) >= 0.5;
-            }
-        }
-        if (!$captchaOk) {
+        if (!recaptcha_ok($_POST['g-recaptcha-response'] ?? '')) {
             $error = t('contact_err_captcha');
         } else {
-            $subject = t('contact_subject', site_name(), $nombre);
-            $body    = t('contact_form_name') . ": $nombre\n"
-                     . t('contact_form_email') . ": $email\n\n"
-                     . t('contact_form_msg') . ":\n$mensaje\n\n--\n" . t('contact_sent_from') . ' ' . SITE_URL;
-            $headers = 'From: ' . mb_encode_mimeheader(site_name()) . ' <' . CONTACT_FROM . ">\r\n"
-                     . 'Reply-To: ' . $email . "\r\n"
-                     . "Content-Type: text/plain; charset=UTF-8\r\n";
-            $sent = @mail(CONTACT_EMAIL, $subject, $body, $headers);
+            $body = t('contact_form_name') . ": $nombre\n"
+                  . t('contact_form_email') . ": $email\n\n"
+                  . t('contact_form_msg') . ":\n$mensaje\n\n--\n" . t('contact_sent_from') . ' ' . SITE_URL;
+            $sent = contact_send(t('contact_subject', site_name(), $nombre), $body, $email);
             if (!$sent) $error = t('contact_err_send');
         }
     }

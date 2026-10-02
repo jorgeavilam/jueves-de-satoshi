@@ -95,6 +95,7 @@ if (privacy_mode() === 'vault'): ?>
         $leyenda = t('coaster_caption', $c['count']);
     }
     echo coaster_render($track, hero_vehicle(), e($leyenda));
+    echo module_slot('home_coaster');
     ?>
   </div>
 </section>

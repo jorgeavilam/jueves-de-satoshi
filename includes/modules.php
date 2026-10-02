@@ -26,6 +26,24 @@ function modules_boot(): void {
     }
 }
 
+/**
+ * Huecos de la interfaz pública que un módulo puede llenar.
+ *
+ * El módulo declara jds_<nombre>_slot(string $slot): string y devuelve HTML.
+ * En un nodo no hay módulos: los huecos quedan vacíos y la página es idéntica.
+ * Huecos: 'banner' (bajo el encabezado), 'home_coaster' (bajo la montaña rusa),
+ * 'year_end' (al final de las gráficas del año).
+ */
+function module_slot(string $slot): string {
+    modules_boot(); // los módulos se cargan a demanda; en un nodo no hay nada que cargar
+    $out = '';
+    foreach (glob(__DIR__ . '/../modules/*/module.php') ?: [] as $f) {
+        $fn = 'jds_' . basename(dirname($f)) . '_slot';
+        if (function_exists($fn)) $out .= (string)$fn($slot);
+    }
+    return $out;
+}
+
 /** ¿Esta instalación es el hub del proyecto? */
 function is_hub(): bool {
     return module_loaded('hub');

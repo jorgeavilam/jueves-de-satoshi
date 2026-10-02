@@ -49,6 +49,7 @@ function canonical_url(): string {
     $rel = current_script();
     if ($rel === '/index.php') return SITE_URL . '/';
     if ($rel === '/year.php') return year_url((int)($_GET['y'] ?? date('Y')));
+    if ($rel === '/instalar.php' && clean_urls()) return SITE_URL . '/monta-el-tuyo';
     return SITE_URL . $rel;
 }
 
@@ -106,7 +107,7 @@ function page_head(string $title, string $description = '', bool $noindex = fals
     $fonts  = font_stacks(font_pair());
     $gf     = font_catalog()[font_pair()]['css'] ?? '';
     ?><!DOCTYPE html>
-<html lang="<?= e(current_locale()) ?>" data-theme="<?= skin() === 'terminal' ? 'dark' : 'light' ?>" data-skin="<?= e(skin()) ?>">
+<html lang="<?= e(current_locale()) ?>" data-theme="<?= skin() === 'terminal' ? 'dark' : 'light' ?>" data-skin="<?= e(skin()) ?>"<?= bg_tone() !== '' ? ' data-bg="' . e(bg_tone()) . '"' : '' ?>>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -177,6 +178,9 @@ function page_head(string $title, string $description = '', bool $noindex = fals
         <a href="<?= SITE_URL ?>/herramientas.php"><?= e(t('nav_herramientas')) ?></a>
       <?php endif; ?>
       <a href="<?= SITE_URL ?>/contacto.php"><?= e(t('nav_contacto')) ?></a>
+      <?php if (is_hub()): // invitar a instalar es cosa del maestro: en un nodo parecería suya la app ?>
+        <a href="<?= e(SITE_URL . (clean_urls() ? '/monta-el-tuyo' : '/instalar.php')) ?>" class="nav-install"><?= e(t('llms_install')) ?></a>
+      <?php endif; ?>
       <button id="themeToggle" class="theme-toggle" title="<?= e(t('nav_theme')) ?>" aria-label="<?= e(t('nav_theme')) ?>">
         <span class="icon-light">🌙</span><span class="icon-dark">☀️</span>
       </button>
@@ -184,6 +188,7 @@ function page_head(string $title, string $description = '', bool $noindex = fals
     <button class="nav-burger" id="navBurger" aria-label="<?= e(t('nav_menu')) ?>">☰</button>
   </div>
 </header>
+<?= module_slot('banner') ?>
 <main>
 <?php
 }
@@ -277,6 +282,8 @@ function page_foot(): void {
                 // separador no se convierta en un renglón aparte. ?>
           <span class="footer-row">
             <a href="<?= SITE_URL ?>/red.php"><?= e(t('footer_network')) ?></a>
+            <span aria-hidden="true">·</span>
+            <a href="<?= e(SITE_URL . (clean_urls() ? '/monta-el-tuyo' : '/instalar.php')) ?>"><?= e(t('llms_install')) ?></a>
             <span aria-hidden="true">·</span>
             <a href="<?= e(HUB_REPO) ?>" target="_blank" rel="noopener"><?= e(t('footer_code')) ?></a>
           </span>

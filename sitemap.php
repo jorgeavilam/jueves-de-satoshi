@@ -21,7 +21,10 @@ if (site_ready() && privacy_mode() !== 'vault') {
         $urls[] = ['loc' => SITE_URL . '/herramientas.php', 'pri' => '0.6'];
     }
     $urls[] = ['loc' => SITE_URL . '/contacto.php', 'pri' => '0.5'];
-    if (is_hub()) $urls[] = ['loc' => SITE_URL . '/red.php', 'pri' => '0.9'];
+    if (is_hub()) {
+        $urls[] = ['loc' => SITE_URL . '/red.php', 'pri' => '0.9'];
+        $urls[] = ['loc' => SITE_URL . (clean_urls() ? '/monta-el-tuyo' : '/instalar.php'), 'pri' => '0.9'];
+    }
 }
 
 echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";

@@ -21,6 +21,8 @@ RewriteRule ^llms\.txt$ llms.php [L]
 # deja enlaces rotos.
 RewriteRule ^ - [E=JDS_CLEAN_URLS:1]
 RewriteRule ^([0-9]{4})/?$ year.php?y=$1 [L,QSA]
+# Solo responde en el sitio maestro; en un nodo instalar.php da 404
+RewriteRule ^monta-el-tuyo/?$ instalar.php [L,QSA]
 
 # Forzar HTTPS (descomentar al activar SSL en el hosting)
 # RewriteCond %{HTTPS} off
