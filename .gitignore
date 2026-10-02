@@ -25,3 +25,7 @@ assets/img/jorge-avila.jpg
 
 # Logotipo del sitio maestro (no se distribuye)
 assets/img/logo.svg
+
+# Entorno local de APRO (puerto, base de prueba, anonimizador): vive solo en
+# este equipo. Se versionó una vez por error; ya no se sube.
+.apro/
