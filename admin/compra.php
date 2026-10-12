@@ -9,7 +9,7 @@ $compra  = null;
 $yearRow = null;
 
 if ($editing) {
-    $st = db()->prepare('SELECT p.*, y.year FROM purchases p JOIN years y ON y.id = p.year_id WHERE p.id = ?');
+    $st = db()->prepare('SELECT p.*, y.year FROM purchases p JOIN years y ON y.id = p.year_id WHERE p.id = ?' . purchases_live('p'));
     $st->execute([(int)$_GET['id']]);
     $compra = $st->fetch();
     if (!$compra) die(t('not_found'));
@@ -23,7 +23,7 @@ if ($editing) {
 $prices = live_prices();
 $next   = ['num' => 1, 'fecha' => next_purchase_date()];
 if (!$editing) {
-    $st = db()->prepare('SELECT MAX(num) AS m, MAX(fecha) AS f FROM purchases WHERE year_id = ?');
+    $st = db()->prepare('SELECT MAX(num) AS m, MAX(fecha) AS f FROM purchases WHERE year_id = ?' . purchases_live());
     $st->execute([(int)$yearRow['id']]);
     $last = $st->fetch();
     if ($last && $last['m']) {
@@ -52,6 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = t('admin_err_purchase');
     } elseif ($url !== '' && !filter_var($url, FILTER_VALIDATE_URL)) {
         $error = t('admin_err_url');
+    } elseif (purchase_num_taken((int)$yearRow['id'], $num, $editing ? (int)$compra['id'] : 0)) {
+        $error = t('admin_err_dup_num', $num);
     } else {
         try {
             if ($editing) {
@@ -127,7 +129,7 @@ admin_chrome('compras');
           <?php if (!is_usd_site()): ?>
           <div class="form-group">
             <label><?= e(t('admin_f_usd_calc')) ?></label>
-            <input type="text" id="fUSD" disabled style="background:var(--bg-soft)">
+            <input type="text" id="fUSD" disabled style="background:var(--bg-soft)" data-locale="<?= e(tr('locale_js')) ?>">
           </div>
           <?php endif; ?>
         </div>
@@ -146,21 +148,4 @@ admin_chrome('compras');
   </div>
 </section>
 
-<script>
-// Vista previa del USD calculado: monto / tipo de cambio
-(function () {
-  var m = document.getElementById('fMonto'), tc = document.getElementById('fTC'),
-      p = document.getElementById('fPrecio'), out = document.getElementById('fUSD');
-  if (!m || !tc || !out) return;
-  var loc = <?= json_encode(tr('locale_js')) ?>;
-  function upd() {
-    var monto = parseFloat(m.value), t = parseFloat(tc.value), precio = parseFloat(p.value), txt = '';
-    if (monto > 0 && t > 0) txt = '$' + (monto / t).toFixed(2) + ' USD';
-    if (precio > 0 && t > 0) txt += (txt ? '  ·  ' : '') + 'BTC: $' + (precio / t).toLocaleString(loc, { maximumFractionDigits: 0 }) + ' USD';
-    out.value = txt;
-  }
-  [m, tc, p].forEach(function (el) { if (el) el.addEventListener('input', upd); });
-  upd();
-})();
-</script>
 <?php page_foot(); ?>

@@ -245,14 +245,9 @@ admin_chrome('marca');
     </div>
   </div>
 </section>
-<script>
-(function () {
-  var day = document.getElementById('fDay'), name = document.getElementById('fName'), hint = document.getElementById('hName');
-  var sugg = <?= json_encode(array_map('suggested_site_name', range(1, 7)), JSON_UNESCAPED_UNICODE) ?>;
-  var tpl = <?= json_encode(t('brand_name_hint', '@@'), JSON_UNESCAPED_UNICODE) ?>;
-  day.addEventListener('change', function () {
-    hint.textContent = tpl.replace('@@', sugg[parseInt(day.value, 10) - 1]);
-  });
-})();
-</script>
+<?php // Nombre sugerido según el día: lo usa assets/js/app.js ?>
+<script type="application/json" id="brandNameData"><?= json_encode([
+    'sugg' => array_map('suggested_site_name', range(1, 7)),
+    'tpl'  => t('brand_name_hint', '@@'),
+], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 <?php page_foot(); ?>

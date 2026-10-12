@@ -29,23 +29,46 @@ if (!defined('RECAPTCHA_SECRET'))    define('RECAPTCHA_SECRET', '');
  * actualización no trae el .htaccess de la raíz, así que solo por aquí llegan
  * a los nodos que ya existen.
  *
- * CSP de base: sin marcos de otros sitios, sin <base> ajeno, sin plugins y los
- * formularios solo hacia el propio sitio. Todavía no restringe scripts: eso
- * espera a que el JavaScript en línea pase a archivos.
+ * CSP: sin marcos de otros sitios, sin <base> ajeno, sin plugins, formularios
+ * solo hacia el propio sitio y scripts solo desde archivos del sitio y de los
+ * servicios que usa (Analytics, reCAPTCHA, Meta). Ningún <script> en línea ni
+ * atributo on*: el JavaScript vive en assets/js/ y los datos viajan en
+ * <script type="application/json">, que no se ejecuta.
+ * Con GTM la parte de scripts va solo como Report-Only: sus etiquetas
+ * personalizadas son JavaScript en línea, y el dueño las arma fuera de la app.
  * HSTS solo en el maestro: un nodo puede perder su certificado mañana, y con
  * HSTS sus visitantes se quedarían sin poder entrar.
  */
+const CSP_BASE    = "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'";
+const CSP_SCRIPTS = "script-src 'self' https://www.googletagmanager.com https://www.google-analytics.com"
+                  . " https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://connect.facebook.net";
+
 function security_headers(): void {
     if (PHP_SAPI === 'cli' || headers_sent()) return;
-    header("Content-Security-Policy: frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'");
+    if (GTM_ID !== '') {
+        header('Content-Security-Policy: ' . CSP_BASE);
+        header('Content-Security-Policy-Report-Only: ' . CSP_SCRIPTS);
+    } else {
+        header('Content-Security-Policy: ' . CSP_BASE . '; ' . CSP_SCRIPTS);
+    }
     $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
           || strtolower($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
     if ($https && is_hub()) header('Strict-Transport-Security: max-age=31536000');
 }
 security_headers();
 
-const JDS_VERSION  = '2.5.2';
+const JDS_VERSION  = '2.6.0';
 const SATS_PER_BTC = 100000000;
+
+/**
+ * Sufijo ?v= del CSS y el JS: cambia con cada versión sin decir cuál es. La
+ * versión exacta solo la ve el dueño con sesión; al público le serviría para
+ * buscar fallas conocidas. Lleva la contraseña de la base para que no se pueda
+ * adivinar probando el hash de cada versión publicada.
+ */
+function asset_version(): string {
+    return substr(hash('sha256', JDS_VERSION . '|' . (defined('DB_PASS') ? DB_PASS : '') . '|' . __DIR__), 0, 10);
+}
 
 /** Naranja Bitcoin: el acento del sitio maestro. Sirve de referencia, no de default. */
 const HUB_ACCENT  = '#F7931A';
@@ -489,14 +512,30 @@ function live_prices(): array {
 
 /* ---------- Correo ---------- */
 
-/** reCAPTCHA v3. Si el sitio no tiene clave secreta, no hay nada que verificar. */
-function recaptcha_ok(string $token): bool {
+/**
+ * reCAPTCHA v3. Se verifica por POST, para que el secreto no quede en la URL
+ * (ni en los registros del servidor), y se revisa que el token sea de este
+ * formulario (action) y de este sitio (hostname, con o sin www): un token
+ * sacado de otra página no sirve aquí. Sin clave secreta no hay nada que verificar.
+ */
+function recaptcha_ok(string $token, string $action = ''): bool {
     if (!defined('RECAPTCHA_SECRET') || RECAPTCHA_SECRET === '') return true;
-    $resp = @file_get_contents('https://www.google.com/recaptcha/api/siteverify?secret='
-        . urlencode(RECAPTCHA_SECRET) . '&response=' . urlencode($token));
+    if ($token === '') return false;
+    $ctx = stream_context_create(['http' => [
+        'method'  => 'POST',
+        'header'  => "Content-Type: application/x-www-form-urlencoded\r\n",
+        'content' => http_build_query(['secret' => RECAPTCHA_SECRET, 'response' => $token,
+                                       'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '']),
+        'timeout' => 6,
+    ]]);
+    $resp = @file_get_contents('https://www.google.com/recaptcha/api/siteverify', false, $ctx);
     if (!$resp) return false;
     $r = json_decode($resp, true);
-    return !empty($r['success']) && ($r['score'] ?? 0) >= 0.5;
+    if (empty($r['success']) || (float)($r['score'] ?? 0) < 0.5) return false;
+    if ($action !== '' && ($r['action'] ?? '') !== $action) return false;
+    $bare = function (string $h): string { return preg_replace('/^www\./', '', strtolower($h)); };
+    $host = (string)parse_url(SITE_URL, PHP_URL_HOST);
+    return $host === '' || $bare((string)($r['hostname'] ?? '')) === $bare($host);
 }
 
 /**
@@ -613,6 +652,42 @@ function get_year(int $year, bool $includeDeleted = false): ?array {
 }
 
 /**
+ * Filtro de compras vigentes. Una instalación que subió los archivos pero aún no
+ * corre upgrade.php no tiene la columna `deleted` (migración 005): ahí todas las
+ * compras están vigentes y el sitio sigue funcionando.
+ */
+function purchases_soft_delete(): bool {
+    static $has = null;
+    if ($has === null) {
+        try {
+            $has = (bool)db()->query("SHOW COLUMNS FROM purchases LIKE 'deleted'")->fetch();
+        } catch (Throwable $ex) {
+            $has = false;
+        }
+    }
+    return $has;
+}
+
+function purchases_live(string $alias = ''): string {
+    return purchases_soft_delete() ? ' AND ' . ($alias !== '' ? $alias . '.' : '') . 'deleted = 0' : '';
+}
+
+/** Compras borradas de un año, para restaurarlas desde el panel. */
+function get_deleted_purchases(int $yearId): array {
+    if (!purchases_soft_delete()) return [];
+    $st = db()->prepare('SELECT * FROM purchases WHERE year_id = ? AND deleted = 1 ORDER BY num ASC');
+    $st->execute([$yearId]);
+    return $st->fetchAll();
+}
+
+/** ¿Hay otra compra vigente con ese número en el año? */
+function purchase_num_taken(int $yearId, int $num, int $exceptId = 0): bool {
+    $st = db()->prepare('SELECT COUNT(*) FROM purchases WHERE year_id = ? AND num = ? AND id <> ?' . purchases_live());
+    $st->execute([$yearId, $num, $exceptId]);
+    return (int)$st->fetchColumn() > 0;
+}
+
+/**
  * Compras de un año con columnas derivadas y acumulados.
  *
  * Regla de negocio: se registra el TIPO DE CAMBIO y el monto en USD se CALCULA.
@@ -620,7 +695,7 @@ function get_year(int $year, bool $includeDeleted = false): ?array {
  * la gráfica refleje la fluctuación real del recorrido.
  */
 function get_purchases(int $yearId): array {
-    $st = db()->prepare('SELECT * FROM purchases WHERE year_id = ? ORDER BY num ASC');
+    $st = db()->prepare('SELECT * FROM purchases WHERE year_id = ?' . purchases_live() . ' ORDER BY num ASC');
     $st->execute([$yearId]);
     $rows = $st->fetchAll();
 
@@ -885,26 +960,63 @@ function uniqueness(): array {
 
 /* ---------- Tracking ---------- */
 
+/**
+ * Analítica solo en páginas públicas: nunca en el panel. El instalador y
+ * upgrade.php ni siquiera pasan por aquí (usan setup_head()).
+ */
+function tracking_enabled(): bool {
+    if (tracking_ids() === []) return false;
+    return strpos(current_script(), '/admin/') !== 0;
+}
+
+/** IDs válidos de config.php; uno mal escrito se ignora en lugar de romper la página. */
+function tracking_ids(): array {
+    $ids = [];
+    if (preg_match('/^G-[A-Z0-9]+$/', GA4_ID))         $ids['ga4']   = GA4_ID;
+    if (preg_match('/^GTM-[A-Z0-9]+$/', GTM_ID))       $ids['gtm']   = GTM_ID;
+    if (preg_match('/^[0-9]{5,20}$/', META_PIXEL_ID))  $ids['pixel'] = META_PIXEL_ID;
+    return $ids;
+}
+
+/**
+ * Sin JavaScript en línea: assets/js/tracking.js lee los IDs de sus atributos.
+ * Carga desde la primera visita y se apaga si el visitante rechaza el aviso de
+ * cookies (decisión del dueño del maestro: quien no responde el aviso también
+ * cuenta como visita).
+ */
 function tracking_head(): string {
-    $out = '';
-    if (defined('GTM_ID') && GTM_ID) {
-        $out .= "<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','" . GTM_ID . "');</script>\n";
-    }
-    if (defined('GA4_ID') && GA4_ID) {
-        $out .= '<script async src="https://www.googletagmanager.com/gtag/js?id=' . GA4_ID . '"></script>' .
-                "<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','" . GA4_ID . "');</script>\n";
-    }
-    if (defined('META_PIXEL_ID') && META_PIXEL_ID) {
-        $out .= "<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','" . META_PIXEL_ID . "');fbq('track','PageView');</script>\n";
-    }
-    return $out;
+    if (!tracking_enabled()) return '';
+    $attrs = '';
+    foreach (tracking_ids() as $k => $v) $attrs .= ' data-' . $k . '="' . e($v) . '"';
+    return '<script src="' . SITE_URL . '/assets/js/tracking.js?v=' . asset_version() . '"' . $attrs . '></script>' . "\n";
 }
 
 function tracking_body(): string {
-    if (defined('GTM_ID') && GTM_ID) {
-        return '<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=' . GTM_ID . '" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>' . "\n";
+    $ids = tracking_enabled() ? tracking_ids() : [];
+    if (isset($ids['gtm'])) {
+        return '<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=' . e($ids['gtm']) . '" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>' . "\n";
     }
     return '';
+}
+
+/** Nombres de los servicios para el aviso: «Google Analytics», «Meta» o los dos. */
+function tracking_names(): string {
+    $ids = tracking_ids();
+    $names = [];
+    if (isset($ids['ga4']) || isset($ids['gtm'])) $names[] = 'Google Analytics';
+    if (isset($ids['pixel']))                     $names[] = 'Meta';
+    return implode(' ' . t('cookie_and') . ' ', $names);
+}
+
+/** Aviso de cookies. Sale oculto; tracking.js lo muestra si el visitante no ha elegido. */
+function cookie_banner(): string {
+    if (!tracking_enabled()) return '';
+    return '<div class="cookie-banner" id="cookieBanner" role="region" aria-label="' . e(t('cookie_label')) . '" hidden>'
+         . '<div class="container"><p>' . e(t('cookie_text', tracking_names())) . '</p>'
+         . '<div class="cookie-actions">'
+         . '<button type="button" class="btn btn-small" data-consent="granted">' . e(t('cookie_accept')) . '</button>'
+         . '<button type="button" class="btn btn-outline btn-small" data-consent="denied">' . e(t('cookie_reject')) . '</button>'
+         . '</div></div></div>' . "\n";
 }
 
 /* ---------- Zona horaria ---------- */

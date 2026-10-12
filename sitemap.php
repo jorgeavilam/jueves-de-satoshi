@@ -14,7 +14,7 @@ $pages = [];
 if (site_ready() && privacy_mode() !== 'vault') {
     // lastmod = la última compra: es lo único que cambia la portada y cada año
     $last = [];
-    foreach (db()->query('SELECT y.year, MAX(p.fecha) AS f FROM years y JOIN purchases p ON p.year_id = y.id WHERE y.deleted = 0 GROUP BY y.year') as $r) {
+    foreach (db()->query('SELECT y.year, MAX(p.fecha) AS f FROM years y JOIN purchases p ON p.year_id = y.id WHERE y.deleted = 0' . purchases_live('p') . ' GROUP BY y.year') as $r) {
         $last[(int)$r['year']] = $r['f'];
     }
     $path = fn(string $p) => fn(string $l) => page_url($p, $l);

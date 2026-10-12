@@ -77,12 +77,4 @@ function tool_picker(string $kind, array $cat, string $title): void {
     </div>
   </div>
 </section>
-<script>
-document.querySelectorAll('.tool-select').forEach(function (sel) {
-  sel.addEventListener('change', function () {
-    var box = document.getElementById('other_' + sel.dataset.kind);
-    box.style.display = sel.value === 'other' ? '' : 'none';
-  });
-});
-</script>
 <?php page_foot(); ?>

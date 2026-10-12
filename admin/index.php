@@ -50,12 +50,30 @@ $years   = get_years();
 $selYear = isset($_GET['y']) ? (int)$_GET['y'] : (count($years) ? (int)end($years)['year'] : (int)date('Y'));
 $yearRow = get_year($selYear);
 
-// Borrar compra
+// Borrar compra: lógico, se puede restaurar (sin la migración 005 no se borra nada)
 if (($_GET['action'] ?? '') === 'borrar' && isset($_GET['id'])) {
     if (!hash_equals(csrf_token(), $_GET['t'] ?? '')) die(t('csrf_bad'));
-    $st = db()->prepare('DELETE FROM purchases WHERE id = ?');
+    if (!purchases_soft_delete()) {
+        header('Location: ' . SITE_URL . '/admin/index.php?y=' . $selYear . '&msg=upgrade'); exit;
+    }
+    $st = db()->prepare('UPDATE purchases SET deleted = 1 WHERE id = ?');
     $st->execute([(int)$_GET['id']]);
     header('Location: ' . SITE_URL . '/admin/index.php?y=' . $selYear . '&msg=borrada'); exit;
+}
+
+// Restaurar compra, si su número no lo ocupa ya otra compra vigente
+if (($_GET['action'] ?? '') === 'restaurar' && isset($_GET['id']) && purchases_soft_delete()) {
+    if (!hash_equals(csrf_token(), $_GET['t'] ?? '')) die(t('csrf_bad'));
+    $st = db()->prepare('SELECT * FROM purchases WHERE id = ? AND deleted = 1');
+    $st->execute([(int)$_GET['id']]);
+    $del = $st->fetch();
+    $msg = 'restaurada';
+    if ($del && purchase_num_taken((int)$del['year_id'], (int)$del['num'])) {
+        $msg = 'ocupada&num=' . (int)$del['num'];
+    } elseif ($del) {
+        db()->prepare('UPDATE purchases SET deleted = 0 WHERE id = ?')->execute([(int)$del['id']]);
+    }
+    header('Location: ' . SITE_URL . '/admin/index.php?y=' . $selYear . '&msg=' . $msg); exit;
 }
 
 // Borrar los datos de ejemplo
@@ -66,6 +84,7 @@ if (($_GET['action'] ?? '') === 'quitar-demo') {
 }
 
 $purchases = $yearRow ? get_purchases((int)$yearRow['id']) : [];
+$deleted   = $yearRow ? get_deleted_purchases((int)$yearRow['id']) : [];
 $msg = $_GET['msg'] ?? '';
 $cur = currency_code();
 
@@ -83,13 +102,16 @@ admin_chrome('compras');
 
     <?php if ($msg === 'guardada'): ?><div class="alert alert-ok">✅ <?= e(t('admin_purchase_saved')) ?></div><?php endif; ?>
     <?php if ($msg === 'borrada'): ?><div class="alert alert-ok">🗑️ <?= e(t('admin_purchase_deleted')) ?></div><?php endif; ?>
+    <?php if ($msg === 'restaurada'): ?><div class="alert alert-ok">✅ <?= e(t('admin_purchase_restored')) ?></div><?php endif; ?>
+    <?php if ($msg === 'ocupada'): ?><div class="alert alert-err"><?= e(t('admin_restore_taken', (int)($_GET['num'] ?? 0))) ?></div><?php endif; ?>
+    <?php if ($msg === 'upgrade'): ?><div class="alert alert-err"><?= e(t('admin_delete_needs_upgrade')) ?></div><?php endif; ?>
     <?php if ($msg === 'demo'): ?><div class="alert alert-ok">🗑️ <?= e(t('saved_ok')) ?></div><?php endif; ?>
 
     <?php if (has_demo_data()): ?>
       <div class="alert alert-warn">
         <?= e(t('inst_demo_hint')) ?>
         <a href="?action=quitar-demo&t=<?= csrf_token() ?>" style="margin-left:8px"
-           onclick="return confirm('<?= e(t('inst_demo')) ?>?')"><?= e(t('delete')) ?> →</a>
+           data-confirm="<?= e(t('inst_demo')) ?>?"><?= e(t('delete')) ?> →</a>
       </div>
     <?php endif; ?>
 
@@ -135,13 +157,42 @@ admin_chrome('compras');
             <td>
               <a href="<?= SITE_URL ?>/admin/compra.php?id=<?= (int)$p['id'] ?>"><?= e(t('edit')) ?></a> ·
               <a href="?y=<?= $selYear ?>&action=borrar&id=<?= (int)$p['id'] ?>&t=<?= csrf_token() ?>"
-                 onclick="return confirm('<?= e(t('admin_confirm_delete_purchase', (int)$p['num'])) ?>')"><?= e(t('delete')) ?></a>
+                 data-confirm="<?= e(t('admin_confirm_delete_purchase', (int)$p['num'])) ?>"><?= e(t('delete')) ?></a>
             </td>
           </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
     </div>
+
+    <?php if ($deleted): ?>
+    <h3 style="margin-top:28px">🗑️ <?= e(t('admin_deleted_purchases')) ?></h3>
+    <p class="section-sub"><?= e(t('admin_deleted_purchases_hint')) ?></p>
+    <div class="table-wrap">
+      <table class="compras">
+        <thead>
+          <tr>
+            <th><?= e(t('th_num')) ?></th>
+            <th><?= e(t('th_date')) ?></th>
+            <th><?= e(t('th_amount', $cur)) ?></th>
+            <th><?= e(t('th_sats')) ?></th>
+            <th><?= e(t('admin_actions')) ?></th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($deleted as $p): ?>
+          <tr style="opacity:0.7">
+            <td><?= (int)$p['num'] ?></td>
+            <td><?= e(fmt_fecha($p['fecha'])) ?></td>
+            <td><?= money($p['monto_local']) ?></td>
+            <td><?= fmt_int($p['sats']) ?></td>
+            <td><a href="?y=<?= $selYear ?>&action=restaurar&id=<?= (int)$p['id'] ?>&t=<?= csrf_token() ?>"><?= e(t('restore')) ?></a></td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+    <?php endif; ?>
     <?php endif; ?>
   </div>
 </section>

@@ -13,6 +13,10 @@ if (!defined('JDS_SETUP_VERSION')) define('JDS_SETUP_VERSION', '2.0.0');
 
 function setup_head(string $title, string $step = ''): void {
     $accent = '#F7931A';
+    // El instalador no carga functions.php: aquí va la misma CSP, sin scripts en línea
+    if (!function_exists('security_headers') && !headers_sent()) {
+        header("Content-Security-Policy: frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self'");
+    }
     ?><!DOCTYPE html>
 <html lang="<?= e(current_locale()) ?>">
 <head>
@@ -88,15 +92,17 @@ function setup_head(string $title, string $step = ''): void {
       <rect width="64" height="64" rx="14" fill="<?= $accent ?>"/>
       <text x="32" y="44" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="32" font-weight="700" fill="#fff">₿</text>
     </svg>
-    <span>Jueves de Satoshi <span class="muted" style="font-weight:600">v<?= JDS_SETUP_VERSION ?></span></span>
+    <span>Jueves de Satoshi</span>
   </div>
   <?php if ($step !== ''): ?><p class="sub" style="margin:0"><?= e($step) ?></p><?php endif; ?>
 <?php
 }
 
 function setup_foot(): void {
+    $js = __DIR__ . '/../assets/js/app.js';
     ?>
 </div>
+<script src="assets/js/app.js?v=<?= is_readable($js) ? substr(md5((string)filemtime($js)), 0, 10) : '1' ?>"></script>
 </body>
 </html>
 <?php

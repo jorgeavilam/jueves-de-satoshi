@@ -74,7 +74,8 @@ Cada versión publica dos zips en su [página de versiones](https://github.com/j
    entra con tu usuario y aplícalas. Mientras tanto el sitio sigue en pie.
 4. Borra el zip del servidor.
 
-El pie del sitio muestra la versión instalada.
+El pie del sitio muestra la versión instalada solo cuando tienes sesión abierta: al
+público no se le enseña, porque serviría para buscar fallas conocidas.
 
 ## Actualización desde la v1
 
@@ -161,14 +162,29 @@ alguien reescribiera el módulo, nacería con un directorio vacío.
 ## Seguridad
 
 - SQL con prepared statements (PDO, sin emulación). Salida escapada con `e()`.
-- CSRF en todos los formularios del panel. Contraseñas con `password_hash`.
+- CSRF en todos los formularios del panel, incluido el login. Contraseñas con `password_hash`.
 - Cookie de sesión HttpOnly + SameSite=Lax + Secure bajo HTTPS.
-- Pausa anti-fuerza-bruta en el login.
+- Límite de intentos en el login: después de 5 fallos, una espera creciente (nunca bloquea la cuenta).
+- Content-Security-Policy sin JavaScript en línea: todo el JS vive en `assets/js/`.
+  Si usas Google Tag Manager, la parte de scripts va solo como *Report-Only*, porque
+  sus etiquetas personalizadas son JavaScript en línea.
+- Chart.js servido desde tu propio sitio, sin CDN.
+- reCAPTCHA v3 verificado por POST, con su acción y el dominio del sitio.
 - Subida de imágenes validada por contenido, no por extensión. SVG con `<script>`
   o atributos `on*` se rechaza.
 - HTML del contenido editable filtrado con lista blanca de etiquetas.
 - `.htaccess` protege `config.php`, los `.sql`, `includes/`, `lang/`,
   `migrations/` y el módulo hub.
+- Las compras borradas se pueden restaurar desde el panel (borrado lógico).
+
+## Analítica y cookies
+
+Si pones `GA4_ID`, `GTM_ID` o `META_PIXEL_ID` en `config.php`, la analítica carga
+en las páginas públicas (nunca en el panel) y el sitio muestra un aviso de cookies.
+Carga desde la primera visita; si el visitante rechaza, se apaga, se borran sus
+cookies y no vuelve a cargar en ese navegador. El enlace «Cookies» del pie reabre
+el aviso. Si tus visitantes vienen de lugares que piden consentimiento previo (la
+Unión Europea, por ejemplo), revisa si este modelo te sirve.
 
 ## Pruebas
 

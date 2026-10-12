@@ -239,8 +239,8 @@ page_head(t('year_page_title', (string)$selYear), count($purchases) ? year_summa
 </section>
 <?php endif; ?>
 
-<script>
-window.JDS = <?= json_encode([
+<?php // Datos de las gráficas como JSON, que no se ejecuta: la CSP no deja correr scripts en línea ?>
+<script type="application/json" id="jdsData"><?= json_encode([
     'locale'    => tr('locale_js'),
     'symbol'    => currency_symbol(),
     'currency'  => $cur,
@@ -267,12 +267,11 @@ window.JDS = <?= json_encode([
         'satsAcum' => t('sats_acum_label'),
         'clickPost'=> t('th_post'),
     ],
-], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
-</script>
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 <?php // Chart.js 4.4.3 servido desde el sitio (sin CDN). Archivo dist/chart.umd.js del
       // paquete de npm, verificado contra su integridad sha512 al copiarlo. ?>
 <script src="<?= SITE_URL ?>/assets/js/vendor/chart-4.4.3.umd.js"></script>
-<script src="<?= SITE_URL ?>/assets/js/charts.js?v=<?= e(JDS_VERSION) ?>"></script>
+<script src="<?= SITE_URL ?>/assets/js/charts.js?v=<?= asset_version() ?>"></script>
 <?php endif; ?>
 
 <?php page_foot(); ?>

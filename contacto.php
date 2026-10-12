@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($nombre === '' || $mensaje === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = t('contact_err_fields');
     } else {
-        if (!recaptcha_ok($_POST['g-recaptcha-response'] ?? '')) {
+        if (!recaptcha_ok($_POST['g-recaptcha-response'] ?? '', 'contacto')) {
             $error = t('contact_err_captcha');
         } else {
             $body = t('contact_form_name') . ": $nombre\n"
@@ -66,7 +66,7 @@ page_head(t('contact_title'));
 
   <?php if (!$sent): ?>
   <div class="form-card">
-    <form method="post" id="contactForm">
+    <form method="post" id="contactForm"<?= $captchaKey !== '' ? ' data-recaptcha="' . e($captchaKey) . '" data-recaptcha-action="contacto"' : '' ?>>
       <div class="form-grid">
         <div class="form-group">
           <label for="nombre"><?= e(t('contact_form_name')) ?></label>
@@ -96,19 +96,5 @@ page_head(t('contact_title'));
 
 <?php if ($captchaKey !== '' && !$sent): ?>
 <script src="https://www.google.com/recaptcha/api.js?render=<?= e($captchaKey) ?>"></script>
-<script>
-document.getElementById('contactForm').addEventListener('submit', function (e) {
-  var hidden = document.getElementById('gRecaptchaResponse');
-  if (hidden.value) return; // ya tenemos token
-  e.preventDefault();
-  var form = this;
-  grecaptcha.ready(function () {
-    grecaptcha.execute('<?= e($captchaKey) ?>', { action: 'contacto' }).then(function (token) {
-      hidden.value = token;
-      form.submit();
-    });
-  });
-});
-</script>
 <?php endif; ?>
 <?php page_foot(); ?>

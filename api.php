@@ -43,7 +43,8 @@ $out = [
     'planned'     => $planned,
     'streak'      => purchase_streak($all),
     'since'       => $all ? $all[0]['fecha'] : null,
-    'version'     => JDS_VERSION,
+    // Sin la versión: es pública y serviría para buscar fallas conocidas. El
+    // maestro la recibe al registrarse el nodo (network_payload()).
 ];
 // Los sats solo salen si el sitio es abierto: es el dato más sensible.
 if (show_amounts()) {

@@ -37,8 +37,9 @@ CREATE TABLE IF NOT EXISTS purchases (
   sats BIGINT UNSIGNED NOT NULL,                      -- sats recibidos en el wallet
   x_post_url VARCHAR(255) DEFAULT NULL,               -- link al post público de la compra
   notas VARCHAR(500) DEFAULT NULL,
+  deleted TINYINT(1) NOT NULL DEFAULT 0,              -- borrado lógico (recuperable)
   PRIMARY KEY (id),
-  UNIQUE KEY uq_year_num (year_id, num),
+  KEY idx_year_num (year_id, num),                    -- único solo entre las vigentes (lo revisa compra.php)
   CONSTRAINT fk_purchase_year FOREIGN KEY (year_id) REFERENCES years(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

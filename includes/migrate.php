@@ -24,6 +24,12 @@ function mig_col_exists(string $table, string $col): bool {
     return (int)$st->fetchColumn() > 0;
 }
 
+function mig_index_exists(string $table, string $index): bool {
+    $st = db()->prepare('SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?');
+    $st->execute([$table, $index]);
+    return (int)$st->fetchColumn() > 0;
+}
+
 function mig_run(string $sql): void { db()->exec($sql); }
 
 /** Renombra una columna solo si hace falta (sintaxis compatible con MySQL 5.7). */

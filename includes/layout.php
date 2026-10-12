@@ -102,10 +102,10 @@ function og_image_url(): string {
     if (og_card_available() && privacy_mode() !== 'vault') {
         $year = current_script() === '/year.php' ? (int)($_GET['y'] ?? date('Y')) : 0;
         $sql  = 'SELECT MAX(p.fecha) FROM purchases p JOIN years y ON y.id = p.year_id WHERE y.deleted = 0'
-              . ($year ? ' AND y.year = ?' : '');
+              . purchases_live('p') . ($year ? ' AND y.year = ?' : '');
         $st = db()->prepare($sql);
         $st->execute($year ? [$year] : []);
-        $ver = str_replace('-', '', (string)$st->fetchColumn()) . '-' . substr(md5(privacy_mode() . current_locale() . JDS_VERSION), 0, 6);
+        $ver = str_replace('-', '', (string)$st->fetchColumn()) . '-' . substr(md5(privacy_mode() . current_locale() . asset_version()), 0, 6);
         return l10n_url(SITE_URL . '/og.php?' . ($year ? 'y=' . $year . '&' : '') . 'v=' . $ver);
     }
     return og_static_image_url();
@@ -161,7 +161,7 @@ function page_head(string $title, string $description = '', bool $noindex = fals
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?<?= e($gf) ?>&display=swap">
 <?php endif; ?>
-<link rel="stylesheet" href="<?= SITE_URL ?>/assets/css/styles.css?v=<?= e(JDS_VERSION) ?>">
+<link rel="stylesheet" href="<?= SITE_URL ?>/assets/css/styles.css?v=<?= asset_version() ?>">
 <style>
 :root {
   --accent: <?= e($accent) ?>;
@@ -173,10 +173,8 @@ function page_head(string $title, string $description = '', bool $noindex = fals
 }
 [data-theme="dark"] { --accent-dark: <?= e(color_shade($accent, 0.22)) ?>; }
 </style>
-<script>
-// Tema guardado antes del render, para que no parpadee
-(function(){var t=localStorage.getItem('jds-theme');if(t)document.documentElement.setAttribute('data-theme',t);})();
-</script>
+<?php // Tema guardado y avisos cerrados, antes de pintar, para que no parpadeen ?>
+<script src="<?= SITE_URL ?>/assets/js/early.js?v=<?= asset_version() ?>"></script>
 <?= tracking_head() ?>
 <?= json_ld($full, $desc, $ld) ?>
 </head>
@@ -303,7 +301,9 @@ function page_foot(): void {
     </div>
     <div class="footer-col footer-disclaimer">
       <p><strong><?= e(t('footer_disclaimer_title')) ?></strong> <?= e(t('footer_disclaimer')) ?></p>
-      <p>© <?= date('Y') ?> <?= e(owner_name()) ?> <span class="footer-version">v<?= e(JDS_VERSION) ?></span></p>
+      <?php // La versión exacta solo la ve el dueño: al público le serviría para buscar fallas conocidas ?>
+      <p>© <?= date('Y') ?> <?= e(owner_name()) ?><?php if (viewer_is_owner()): ?> <span class="footer-version">v<?= e(JDS_VERSION) ?></span><?php endif; ?>
+        <?php if (tracking_enabled()): ?> · <button type="button" class="link-button" data-consent-open><?= e(t('cookie_label')) ?></button><?php endif; ?></p>
       <p class="footer-links">
         <?php if (is_hub()): ?>
           <?php // Los dos enlaces van en un solo ítem del flex, para que el
@@ -323,7 +323,8 @@ function page_foot(): void {
     </div>
   </div>
 </footer>
-<script src="<?= SITE_URL ?>/assets/js/app.js?v=<?= e(JDS_VERSION) ?>"></script>
+<?= cookie_banner() ?>
+<script src="<?= SITE_URL ?>/assets/js/app.js?v=<?= asset_version() ?>"></script>
 </body>
 </html>
 <?php

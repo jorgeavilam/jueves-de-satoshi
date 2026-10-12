@@ -1,9 +1,11 @@
 // Jueves de Satoshi — Gráficas (Chart.js)
-// Espera window.JDS, que arma year.php: locale, símbolo de moneda, series y textos.
+// Lee el JSON de #jdsData, que arma year.php: locale, símbolo de moneda, series y textos.
 // El color de acento se lee del CSS, así que cada instalación pinta con el suyo.
 (function () {
-  if (!window.JDS || typeof Chart === 'undefined') return;
-  var D = window.JDS;
+  var el = document.getElementById('jdsData');
+  if (!el || typeof Chart === 'undefined') return;
+  var D;
+  try { D = JSON.parse(el.textContent); } catch (e) { return; }
   var charts = [];
 
   function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }

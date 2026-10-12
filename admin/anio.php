@@ -104,7 +104,7 @@ admin_chrome('anios');
                 <a href="?action=restaurar&year=<?= (int)$yr['year'] ?>&t=<?= csrf_token() ?>"><?= e(t('restore')) ?></a>
               <?php else: ?>
                 <a href="?action=borrar&year=<?= (int)$yr['year'] ?>&t=<?= csrf_token() ?>"
-                   onclick="return confirm('<?= e(t('admin_confirm_delete_year', (int)$yr['year'])) ?>')"><?= e(t('delete')) ?></a>
+                   data-confirm="<?= e(t('admin_confirm_delete_year', (int)$yr['year'])) ?>"><?= e(t('delete')) ?></a>
               <?php endif; ?>
             </td>
           </tr>

@@ -446,33 +446,16 @@ $v = fn(string $k) => e($D[$k] ?? '');
     <input type="number" name="fallback_usd_local" step="0.0001" min="0.0001" value="<?= $v('fallback_usd_local') ?>">
     <p class="hint" id="fxHint"></p>
   </div>
-  <script>
-  (function () {
-    // El tipo de cambio de respaldo solo importa en monedas que CoinGecko no cotiza.
-    var noCg = <?= json_encode(array_keys(array_filter(currencies(), fn($c) => !$c['cg']))) ?>;
-    var cur = document.querySelector('select[name=currency]');
-    var box = document.getElementById('fxBox'), curLbl = document.getElementById('fxCur'), fxHint = document.getElementById('fxHint');
-    var fxTpl = <?= json_encode(t('inst_fx_hint', '@@'), JSON_UNESCAPED_UNICODE) ?>;
-    function fx() {
-      var need = noCg.indexOf(cur.value) !== -1;
-      box.style.display = need ? '' : 'none';
-      curLbl.textContent = cur.value;
-      fxHint.textContent = fxTpl.replace('@@', cur.value);
-    }
-    cur.addEventListener('change', fx);
-    fx();
-  })();
-  (function () {
-    var day = document.getElementById('fDay'), name = document.getElementById('fName'), hint = document.getElementById('hName');
-    var sugg = <?= json_encode(array_map('suggested_site_name', range(1, 7)), JSON_UNESCAPED_UNICODE) ?>;
-    var tpl = <?= json_encode(t('brand_name_hint', '@@'), JSON_UNESCAPED_UNICODE) ?>;
-    day.addEventListener('change', function () {
-      var s = sugg[parseInt(day.value, 10) - 1];
-      hint.textContent = tpl.replace('@@', s);
-      if (!name.value) name.value = s;
-    });
-  })();
-  </script>
+  <?php // Lo usa assets/js/app.js: el tipo de cambio de respaldo solo importa en
+        // monedas que CoinGecko no cotiza, y el nombre sugerido cambia con el día. ?>
+  <script type="application/json" id="fxData"><?= json_encode([
+      'noCg' => array_keys(array_filter(currencies(), fn($c) => !$c['cg'])),
+      'tpl'  => t('inst_fx_hint', '@@'),
+  ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+  <script type="application/json" id="brandNameData" data-fill-empty="1"><?= json_encode([
+      'sugg' => array_map('suggested_site_name', range(1, 7)),
+      'tpl'  => t('brand_name_hint', '@@'),
+  ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 
 <?php elseif ($step === 5): ?>
   <h1><?= e(t('content_title')) ?></h1>
