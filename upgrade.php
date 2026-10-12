@@ -25,17 +25,27 @@ session_set_cookie_params([
 session_start();
 
 /* ---------- Acceso ---------- */
+if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(16));
 $loginError = '';
 if (($_POST['do'] ?? '') === 'login') {
+    if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) {
+        http_response_code(403);
+        die(e(t('csrf_bad')));
+    }
     $st = db()->prepare('SELECT * FROM users WHERE username = ?');
     $st->execute([$_POST['usuario'] ?? '']);
     $u = $st->fetch();
-    if ($u && password_verify($_POST['password'] ?? '', $u['pass_hash'])) {
+    if (($wait = login_wait_seconds()) > 0) {
+        $loginError = t('admin_login_wait', $wait);
+    } elseif ($u && password_verify($_POST['password'] ?? '', $u['pass_hash'])) {
+        login_record(true);
         session_regenerate_id(true);
+        $_SESSION['csrf']         = bin2hex(random_bytes(16)); // rota al iniciar sesión
         $_SESSION['jds_admin']    = true;
         $_SESSION['jds_user_id']  = (int)$u['id'];
         $_SESSION['jds_username'] = $u['username'];
     } else {
+        login_record(false);
         usleep(500000);
         $loginError = t('admin_login_bad');
     }
@@ -47,6 +57,7 @@ if (empty($_SESSION['jds_admin'])) {
     echo '<div class="card">';
     if ($loginError) echo '<div class="alert err">' . e($loginError) . '</div>';
     echo '<form method="post"><input type="hidden" name="do" value="login">'
+       . '<input type="hidden" name="csrf" value="' . e($_SESSION['csrf']) . '">'
        . '<div class="field"><label>' . e(t('admin_user')) . '</label><input type="text" name="usuario" required autofocus></div>'
        . '<div class="field"><label>' . e(t('admin_pass')) . '</label><input type="password" name="password" required></div>'
        . '<div class="actions"><button class="btn" type="submit">' . e(t('admin_enter')) . '</button></div>'
@@ -54,8 +65,6 @@ if (empty($_SESSION['jds_admin'])) {
     setup_foot();
     exit;
 }
-
-if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(16));
 
 /* ---------- Estado ---------- */
 $pending = migrations_pending();

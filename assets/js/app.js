@@ -43,3 +43,16 @@
     });
   });
 })();
+
+// Correo público protegido: el HTML lo trae invertido y aquí se arma el mailto
+(function () {
+  var links = document.querySelectorAll('a.protected-email');
+  for (var i = 0; i < links.length; i++) {
+    var a = links[i];
+    var u = (a.getAttribute('data-u') || '').split('').reverse().join('');
+    var d = (a.getAttribute('data-d') || '').split('').reverse().join('');
+    if (!u || !d) continue;
+    a.href = 'mailto:' + u + '@' + d;
+    a.textContent = u + '@' + d;
+  }
+})();

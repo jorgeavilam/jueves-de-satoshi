@@ -28,7 +28,7 @@ function admin_chrome(string $current): void {
         <span><?= e(t('admin_panel')) ?> — <?= e(site_name() ?: HUB_PROJECT) ?></span>
         <span>
           <a href="<?= SITE_URL ?>/" target="_blank" rel="noopener"><?= e(t('admin_view_site')) ?></a> ·
-          <a href="<?= SITE_URL ?>/admin/index.php?action=logout"><?= e(t('admin_logout')) ?></a>
+          <a href="<?= SITE_URL ?>/admin/index.php?action=logout&amp;t=<?= e(csrf_token()) ?>"><?= e(t('admin_logout')) ?></a>
         </span>
       </div>
     </div>

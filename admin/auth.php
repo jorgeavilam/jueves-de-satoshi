@@ -26,8 +26,14 @@ function csrf_token(): string {
     return $_SESSION['csrf'];
 }
 
+/** Un token por sesión. El vacío nunca vale: hash_equals('', '') daría true. */
+function csrf_ok(string $sent): bool {
+    $mine = (string)($_SESSION['csrf'] ?? '');
+    return $mine !== '' && hash_equals($mine, $sent);
+}
+
 function check_csrf(): void {
-    if (!hash_equals($_SESSION['csrf'] ?? '', $_POST['csrf'] ?? '')) {
+    if (!csrf_ok((string)($_POST['csrf'] ?? ''))) {
         http_response_code(403);
         die(t('csrf_bad'));
     }
@@ -39,6 +45,7 @@ function try_login(string $user, string $pass): bool {
     $u = $st->fetch();
     if ($u && password_verify($pass, $u['pass_hash'])) {
         session_regenerate_id(true);
+        unset($_SESSION['csrf']); // el token rota al iniciar sesión
         $_SESSION['jds_admin'] = true;
         $_SESSION['jds_user_id'] = (int)$u['id'];
         $_SESSION['jds_username'] = $u['username'];

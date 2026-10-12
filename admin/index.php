@@ -4,16 +4,24 @@ require_once __DIR__ . '/nav.php';
 require_once __DIR__ . '/../includes/layout.php';
 require_once __DIR__ . '/../includes/demo.php';
 
-// Logout
-if (($_GET['action'] ?? '') === 'logout') { logout(); header('Location: ' . SITE_URL . '/'); exit; }
+// Logout: con token, para que otra página no pueda cerrar la sesión con un enlace
+if (($_GET['action'] ?? '') === 'logout') {
+    if (csrf_ok((string)($_GET['t'] ?? ''))) logout();
+    header('Location: ' . SITE_URL . '/'); exit;
+}
 
 // Login
 $loginError = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
-    if (!try_login($_POST['usuario'] ?? '', $_POST['password'] ?? '')) {
+    check_csrf();
+    if (($wait = login_wait_seconds()) > 0) {
+        $loginError = t('admin_login_wait', $wait);
+    } elseif (!try_login($_POST['usuario'] ?? '', $_POST['password'] ?? '')) {
+        login_record(false);
         usleep(500000); // frena fuerza bruta
         $loginError = t('admin_login_bad');
     } else {
+        login_record(true);
         header('Location: ' . SITE_URL . '/admin/index.php'); exit;
     }
 }
@@ -26,6 +34,7 @@ if (!is_logged_in()) {
         <h2 style="margin-bottom:16px">🔐 <?= e(t('admin_login_title')) ?></h2>
         <?php if ($loginError): ?><div class="alert alert-err"><?= e($loginError) ?></div><?php endif; ?>
         <form method="post">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <div class="form-group"><label><?= e(t('admin_user')) ?></label><input type="text" name="usuario" required autofocus autocomplete="username"></div>
           <div class="form-group"><label><?= e(t('admin_pass')) ?></label><input type="password" name="password" required autocomplete="current-password"></div>
           <button class="btn" type="submit" name="login" value="1"><?= e(t('admin_enter')) ?></button>

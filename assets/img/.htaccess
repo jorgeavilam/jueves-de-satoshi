@@ -1,0 +1,9 @@
+# Las imágenes que sube el dueño se sirven como imágenes, nunca como páginas.
+# Un SVG abierto directo en el navegador puede ejecutar código; con esta CSP no
+# corre ningún script aunque se haya colado uno que el filtro no reconoció.
+<IfModule mod_headers.c>
+  <FilesMatch "\.svg$">
+    Header set Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:"
+  </FilesMatch>
+  Header set X-Content-Type-Options "nosniff"
+</IfModule>

@@ -25,3 +25,11 @@ assets/img/jorge-avila.jpg
 
 # Logotipo del sitio maestro (no se distribuye)
 assets/img/logo.svg
+
+# Datos y exportaciones: nunca en un repo público
+*.csv
+*.xlsx
+*.xls
+
+# Configuración local de Claude Code
+.claude/

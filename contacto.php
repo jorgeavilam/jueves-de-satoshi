@@ -44,7 +44,7 @@ page_head(t('contact_title'));
       <h2><?= e(owner_name()) ?></h2>
       <?php if ($bio !== ''): ?><p class="bio"><?= e($bio) ?></p><?php endif; ?>
       <?php if ($publicEmail !== ''): ?>
-        <p class="profile-mail"><a href="mailto:<?= e($publicEmail) ?>"><?= e($publicEmail) ?></a></p>
+        <p class="profile-mail"><?= protected_email($publicEmail) ?></p>
       <?php endif; ?>
       <?php if ($socials): ?>
       <div class="social-links dark-on-light">

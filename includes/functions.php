@@ -24,7 +24,27 @@ if (!defined('META_PIXEL_ID'))       define('META_PIXEL_ID', '');
 if (!defined('RECAPTCHA_SITE_KEY'))  define('RECAPTCHA_SITE_KEY', '');
 if (!defined('RECAPTCHA_SECRET'))    define('RECAPTCHA_SECRET', '');
 
-const JDS_VERSION  = '2.5.1';
+/**
+ * Encabezados de seguridad, desde PHP y no desde el .htaccess: el zip de
+ * actualización no trae el .htaccess de la raíz, así que solo por aquí llegan
+ * a los nodos que ya existen.
+ *
+ * CSP de base: sin marcos de otros sitios, sin <base> ajeno, sin plugins y los
+ * formularios solo hacia el propio sitio. Todavía no restringe scripts: eso
+ * espera a que el JavaScript en línea pase a archivos.
+ * HSTS solo en el maestro: un nodo puede perder su certificado mañana, y con
+ * HSTS sus visitantes se quedarían sin poder entrar.
+ */
+function security_headers(): void {
+    if (PHP_SAPI === 'cli' || headers_sent()) return;
+    header("Content-Security-Policy: frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'");
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+          || strtolower($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
+    if ($https && is_hub()) header('Strict-Transport-Security: max-age=31536000');
+}
+security_headers();
+
+const JDS_VERSION  = '2.5.2';
 const SATS_PER_BTC = 100000000;
 
 /** Naranja Bitcoin: el acento del sitio maestro. Sirve de referencia, no de default. */
@@ -491,6 +511,64 @@ function contact_send(string $subject, string $body, string $replyTo = ''): bool
              . (filter_var($replyTo, FILTER_VALIDATE_EMAIL) ? 'Reply-To: ' . $replyTo . "\r\n" : '')
              . "Content-Type: text/plain; charset=UTF-8\r\n";
     return @mail(CONTACT_EMAIL, mb_encode_mimeheader($subject), $body, $headers);
+}
+
+/**
+ * Correo público protegido contra scrapers: nunca va en claro en el HTML.
+ * Las partes viajan invertidas en atributos y assets/js/app.js arma el mailto.
+ * Sin JavaScript se lee «nombre [arroba] dominio [punto] com».
+ */
+function protected_email(string $email): string {
+    list($user, $domain) = array_pad(explode('@', $email, 2), 2, '');
+    $visible = $user . ' ' . t('email_at') . ' ' . str_replace('.', ' ' . t('email_dot') . ' ', $domain);
+    return '<a class="protected-email" href="#" rel="nofollow" data-u="' . e(strrev($user))
+         . '" data-d="' . e(strrev($domain)) . '">' . e($visible) . '</a>';
+}
+
+/* ---------- Intentos de login ----------
+ *
+ * Cinco fallos seguidos desde la misma IP y la siguiente oportunidad espera:
+ * 30 s, luego 1, 2, 4… minutos, hasta 15. Es espera y no candado, para que nadie
+ * pueda dejar al dueño fuera de su propio panel. Vive en `settings` (como el
+ * enlace de recuperación) para no pedir una migración; la IP va con hash.
+ */
+const LOGIN_FREE_TRIES = 5;
+const LOGIN_MAX_WAIT   = 900;
+
+function login_fail_map(): array {
+    $m = json_decode(get_setting('login_fail', ''), true);
+    return is_array($m) ? $m : [];
+}
+
+function login_ip_key(): string {
+    return substr(hash('sha256', ($_SERVER['REMOTE_ADDR'] ?? '') . '|' . SITE_URL), 0, 16);
+}
+
+/** Segundos que faltan para poder volver a intentar (0 = adelante). */
+function login_wait_seconds(): int {
+    $r = login_fail_map()[login_ip_key()] ?? null;
+    if (!is_array($r) || (int)$r[0] < LOGIN_FREE_TRIES) return 0;
+    $wait = (int)min(LOGIN_MAX_WAIT, 30 * pow(2, (int)$r[0] - LOGIN_FREE_TRIES));
+    return max(0, (int)$r[1] + $wait - time());
+}
+
+function login_record(bool $ok): void {
+    try {
+        $m = login_fail_map();
+        $k = login_ip_key();
+        if ($ok) {
+            if (!isset($m[$k])) return;
+            unset($m[$k]);
+        } else {
+            $m[$k] = [(int)($m[$k][0] ?? 0) + 1, time()];
+        }
+        // Fuera lo de más de un día, y nunca más de 200 IPs guardadas
+        $m = array_filter($m, function ($r) { return is_array($r) && (int)$r[1] > time() - 86400; });
+        if (count($m) > 200) $m = array_slice($m, -200, null, true);
+        set_setting('login_fail', $m ? json_encode($m) : '');
+    } catch (Throwable $ex) {
+        // sin base de datos: el login falla de todos modos
+    }
 }
 
 /* ---------- URLs ---------- */
